@@ -1,32 +1,33 @@
-import struct, SocketServer, Queue
+import struct, SocketServer, Queue, socket, time
 
 class UDPPacket():
     """
     Structure:
     [CONN_ID][MSG_ID][PACKETS][SUBID][DATA]
-    0        2       6        8      10    1400
-    ID - message id 0..2**32
+    0        4        8      10      16    1400
+    CONN_ID - connection ID
+    MSG_ID - message ID 0..2**32
     PACKETS - amount of packets for this message 1..2**16
-    SUBID - packet id 0..2**16
+    SUBID - packet ID 0..2**16
     DATA - data itself
     """
-    PACK_SIZE = 1400
-    HEAD_SIZE = 10
-    DATA_SIZE = PACK_SIZE - HEAD_SIZE
-    HEAD_FMT = "HIHH"
+    PACKET_SIZE = 1400
+    HEAD_SIZE = 12
+    DATA_SIZE = PACKET_SIZE - HEAD_SIZE
+    HEAD_FMT = "IIHH"
 
     def __init__(self, packet=None):
         if packet is not None:
             self.data = packet[self.HEAD_SIZE:]
             header = struct.unpack(self.HEAD_FMT, packet[:self.HEAD_SIZE])
-            self.connId = header[0]
-            self.msgId = header[1]
+            self.connID = header[0]
+            self.msgID = header[1]
             self.packets = header[2]
-            self.subid = header[3]
+            self.subID = header[3]
             self.packet = packet
     
     @classmethod
-    def splitInPackets(cls, data, connId, msgId):
+    def splitInPackets(cls, data, connID, msgID):
         """
         Constructs packets from data
         """
@@ -34,108 +35,197 @@ class UDPPacket():
         amount = (len(data) - 1) / (cls.DATA_SIZE) + 1
         for i in range(amount):
             item = cls()
-            item.connId = connId
-            item.msgId = msgId
+            item.connID = connID
+            item.msgID = msgID
             item.packets = amount
-            item.subid = i
-            item.data = data[i*cls.DATA_SIZE:(i+1)*DATA_SIZE]
-            item.packet = struct.pack(cls.HEAD_FMT, connId, msgId, amount, i) + item.data
+            item.subID = i
+            item.data = data[i*cls.DATA_SIZE:(i+1)*cls.DATA_SIZE]
+            item.packet = struct.pack(cls.HEAD_FMT, connID, msgID, amount, i) + item.data
+            #print 'New packet(', len(item.packet), ')', item.packet
             packets.append(item)
 
         return packets
 
 class UDPMessage():
     """
-    An incomplete UDP message
+    A complete UDP message
     """
 
     def __init__(self, packet):
-        self.packets = [(packet.subid, packet)]
-        self.amount = packet.amount
+        self.packets = [(packet.subID, packet)]
+        self.amount = packet.packets
+        self.connID = packet.connID
+        self.msgID = packet.msgID
+        self.data = None
+        self.complete()
 
-    def compile(self):
-        if self.amount != len(self.packets):
-            return None
-
-        return ''.join(x[1].data for x in sorted(self.packets, key=lambda x: x[0]))
 
     def add(self, packet):
-        self.packets += [(packet.subid, packet)]
+        self.packets += [(packet.subID, packet)]
+        self.complete()
+
+    def complete(self):
+        if self.amount == len(self.packets):
+            self.data = ''.join(x[1].data for x in sorted(self.packets, key=lambda x: x[0]))
 
 class UDPConnection():
     """
     A very insecure connection between 2 servers
     """
-    def __init__(self, remoteAddr, remoteID, packet=None):
-        self.remoteAddr = remoteAddr
-        self.remoteID = remoteID
+    INITIAL_MSG = '!'
+    KEEP_ALIVE = '#'
+    DISCONNECT = ''
+
+    def __init__(self, connID, remoteAddr, newsocket=None, timeout=0):
+        self.connID = connID
         self.messages = {}
         self.msgID = 0
-        self.localID = 0
-        if packet is not None:
-            self.localID = int(packet.data)
+        self.addr = remoteAddr
+        self.lastTime = time.time()
 
-        # Initialize/acknowledge conncetion
-        send(str(remoteID))
-
-    def acknowledge(self, packet, addr):
-        self.localID = int(packet.data)
-        self.remoteAddr = addr
-    
-    def send(self, data):
-        packets = [UDPPacket.splitInPackets(data, self.localID, self.msgID)]
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        for packet in packets:
-            s.sendto(packet, remoteAddr)
-
-    def receive(self, packet, addr):
-        self.remoteAddr = addr
-        if packet.msgID in self.messages:
-            msg = self.messages[packet.msgID].add(packet)
+        # initialize connection
+        if newsocket is None:
+            self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            self.socket.connect(remoteAddr)
+            self.send(self.INITIAL_MSG)
         else:
-            self.message[packet.msgID] = UDPMessage(packet)
+            self.socket = newsocket
+            self.send(str(self.connID))
 
-        msg = self.messages[packet.msgID].compile()
+        self.socket.settimeout(timeout)
 
-        if msg is not None:
+    def send(self, data):
+        packets = UDPPacket.splitInPackets(data, self.connID, self.msgID)
+        for packet in packets:
+            #print "Sending: ", packet.packet
+            #print "To: ", self.addr
+            self.socket.sendto(packet.packet, self.addr)
+        self.msgID += 1
+
+    def receivePacket(self, packet):
+        if packet.msgID in self.messages:
+            self.messages[packet.msgID].add(packet)
+        else:
+            self.messages[packet.msgID] = UDPMessage(packet)
+
+        msg = self.messages[packet.msgID]
+        self.lastTime = time.time()
+
+        if msg.data is not None:
             del self.messages[packet.msgID]
+            return msg
+        return None
 
-        return msg
+    def receive(self):
+        while True:
+            #print 'Receiving...'
+            packet = UDPPacket(self.socket.recv(UDPPacket.PACKET_SIZE))
+            #print packet.msgID, packet.packets, packet.subID, packet.data
+            if packet.data == self.KEEP_ALIVE:
+                continue
+
+            msg = self.receivePacket(packet)
+            if msg is not None:
+                return msg
+
+
 
 class UDPHandler(SocketServer.BaseRequestHandler):
     """
     Basically gives received packets to server.
     """
     def handle(self):
+        #print 'Received:', self.request[0], self.client_address
+        #print len(self.request[0])
         packet = UDPPacket(self.request[0])
-        #Connection request
-        if packet.connID == 0:
-            self.server.createConnection(packet, self.client_address)
-        #Connection acknowledge
-        elif packet.msgID == 0:
-            self.server.acknowledgeConnection(packet, self.clien_address)
-        else
-            self.server.addPacket(packet, self.client_address)
+
+        if packet.data == UDPConnection.INITIAL_MSG:
+            self.server.createConnection(self.client_address, self.request[1])
+        elif packet.data == UDPConnection.KEEP_ALIVE:
+            pass
+        elif packet.data == UDPConnection.DISCONNECT:
+            self.server.disconnect(packet.connID)
+        else:
+            self.server.addPacket(packet)
 
 class UDPServer(SocketServer.ThreadingMixIn, SocketServer.UDPServer):
     
-    def __init__(self, output):
+    def __init__(self, addr, output, timeout=30):
+        SocketServer.UDPServer.__init__(self, addr, UDPHandler)
         self.outputQ = output
         self.connections = {}
+        self.timeout = timeout
         self.connNum = 0
+        self.alive = True
 
-    def createConnection(packet, addr):
+    def createConnection(self, addr, socket):
         self.connNum += 1
-        self.connections[self.connNum] = UDPConnection(addr, self.connNum, packet)
+        self.connections[self.connNum] = UDPConnection(\
+                self.connNum, addr, socket, self.timeout)
+        return self.connections[self.connNum]
 
-    def acknowledgeConnection(packet, addr):
-        self.connections[packet.connID].acknowledge(packet, addr)
+    def addPacket(self, packet):
+        msg = self.connections[packet.connID].receivePacket(packet)
+        if msg is not None:
+            self.outputQ.put(msg)
 
-    def addPacket(packet, addr):
-        data = self.connections[packet.connID].receive(packet, addr)
-        if data is not None:
-            outputQ.put(data)
-
-    def send(data, connID):
+    def send(self, data, connID):
         self.connections[connID].send(data)
 
+    def sendToAll(self, data):
+        for connection in self.connections.values():
+            connection.send(data)
+
+    def disconnect(self, connID):
+        self.connections[connID].send(UDPConnection.DISCONNECT)
+        del self.connections[connID]
+
+    def keepAlive(self):
+        while self.alive:
+            time.sleep(self.timeout / 3)
+            stamp = time.time()
+            disconnected = []
+            for key in self.connections:
+                if (stamp - self.connections[key].lastTime) > self.timeout:
+                    disconnected += [key]
+            for key in disconnected:
+                self.disconnect(key)
+            self.sendToAll(UDPConnection.KEEP_ALIVE)
+    
+    def shutdown(self):
+        self.sendToAll(UDPConnection.DISCONNECT)
+        self.alive = False
+        SocketServer.UDPServer.shutdown(self)
+
+class UDPClient():
+
+    def __init__(self, address, outputQ, timeout=30):
+        self.timeout = timeout
+        self.connection = UDPConnection(\
+                0, address, timeout=self.timeout)
+        msg = self.connection.receive()
+        self.connection.connID = int(msg.data)
+        self.outputQ = outputQ
+        self.alive = True
+
+    def keepAlive(self):
+        while self.alive:
+            time.sleep(self.timeout / 3)
+            self.connection.send(UDPConnection.KEEP_ALIVE)
+
+    def send(self, data):
+        self.connection.send(data)
+
+    def receive(self):
+        try:
+            while self.alive:
+                msg = self.connection.receive()
+                if msg.data == UDPConnection.DISCONNECT:
+                    break
+                self.outputQ.put(msg)
+        except socket.timeout:
+            self.alive = False
+
+    def shutdown(self):
+        self.connection.send(UDPConnection.DISCONNECT)
+        self.alive = False
