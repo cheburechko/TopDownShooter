@@ -144,7 +144,7 @@ class UDPHandler(SocketServer.BaseRequestHandler):
         elif packet.data == UDPConnection.KEEP_ALIVE:
             pass
         elif packet.data == UDPConnection.DISCONNECT:
-            self.server.disconnect(packet.connID)
+            self.server.disconnect(packet)
         else:
             self.server.addPacket(packet)
 
@@ -176,9 +176,11 @@ class UDPServer(SocketServer.ThreadingMixIn, SocketServer.UDPServer):
         for connection in self.connections.values():
             connection.send(data)
 
-    def disconnect(self, connID):
-        self.connections[connID].send(UDPConnection.DISCONNECT)
-        del self.connections[connID]
+    def disconnect(self, packet):
+        self.connections[packet.connID].send(UDPConnection.DISCONNECT)
+        del self.connections[packet.connID]
+        packet.packets = 1
+        self.outputQ.put(UDPMessage(packet))
 
     def keepAlive(self):
         while self.alive:
