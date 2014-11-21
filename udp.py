@@ -157,20 +157,27 @@ class UDPServer(SocketServer.ThreadingMixIn, SocketServer.UDPServer):
         self.timeout = timeout
         self.connNum = 0
         self.alive = True
+        self.verbose = False
 
     def createConnection(self, addr, socket):
+        if self.verbose:
+            print "Creating connection: ", addr
         self.connNum += 1
         self.connections[self.connNum] = UDPConnection(\
                 self.connNum, addr, socket, self.timeout)
         return self.connections[self.connNum]
 
     def addPacket(self, packet):
+        if self.verbose:
+            print "Received from", packet.connID, ':', len(packet.data), 'bytes'
         msg = self.connections[packet.connID].receivePacket(packet)
         if msg is not None:
             self.outputQ.put(msg)
 
     def send(self, data, connID):
         try:
+            if self.verbose:
+                print "Sending to", connID, ':', len(data), 'bytes'
             self.connections[connID].send(data)
         except:
             self.disconnect(id=connID)
@@ -188,6 +195,8 @@ class UDPServer(SocketServer.ThreadingMixIn, SocketServer.UDPServer):
             packet.data=UDPConnection.DISCONNECT
             packet.msgID=0
             packet.subID=0
+        if self.verbose:
+            print "Disconnecting ", packet.connID
         try:
             self.connections[packet.connID].send(UDPConnection.DISCONNECT)
         except:
@@ -210,6 +219,8 @@ class UDPServer(SocketServer.ThreadingMixIn, SocketServer.UDPServer):
             self.sendToAll(UDPConnection.KEEP_ALIVE)
     
     def shutdown(self):
+        if self.verbose:
+            print 'Shutting down...'
         self.sendToAll(UDPConnection.DISCONNECT)
         self.alive = False
         SocketServer.UDPServer.shutdown(self)
@@ -224,15 +235,20 @@ class UDPClient():
         self.connection.connID = int(msg.data)
         self.outputQ = outputQ
         self.alive = True
+        self.verbose = False
 
     def keepAlive(self):
         while self.alive:
             time.sleep(self.timeout / 3)
             self.send(UDPConnection.KEEP_ALIVE)
+            if self.verbose:
+                print "Sent: KEEP_ALIVE"
 
     def send(self, data):
         try:
             self.connection.send(data)
+            if self.verbose:
+                print "Sent:", len(data), "bytes"
         except:
             self.handle_exceptions()
 
@@ -241,12 +257,19 @@ class UDPClient():
             while self.alive:
                 msg = self.connection.receive()
                 if msg.data == UDPConnection.DISCONNECT:
+                    if self.verbose:
+                        print "Received: DISCONNECT"
+                    self.shutdown()
                     break
+                if self.verbose:
+                    print "Received:", len(msg.data), 'bytes'
                 self.outputQ.put(msg)
         except:
             self.handle_exceptions()
 
     def handle_exceptions(self):
+        if self.verbose:
+            print "Caught exception, closing..."
         self.alive = False
         packet = UDPPacket()
         packet.data = ''
@@ -255,6 +278,10 @@ class UDPClient():
         packet.subID = 0
         self.outputQ.put(UDPMessage(packet))
 
+
     def shutdown(self):
-        self.connection.send(UDPConnection.DISCONNECT)
+        if self.verbose:
+            print "Shutting down..."
+
+        self.send(UDPConnection.DISCONNECT)
         self.alive = False
