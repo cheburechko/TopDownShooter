@@ -113,7 +113,7 @@ class LocalSimulation():
                                       timestamp=self.timestamp, delta=delta, real=False)
 
             for id in self.mobs:
-                self.mobs[id].step(self.players.values(), delta*self.TIME_SCALE, self.timestamp)
+                self.mobs[id].step(self.players, delta*self.TIME_SCALE, self.timestamp)
 
             for id in self.bullets:
                 self.bullets[id].move(delta*self.TIME_SCALE)

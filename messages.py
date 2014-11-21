@@ -183,8 +183,9 @@ class EntityMessage(Message):
     def fromString(cls, data):
         msg = EntityMessage()
         msg.getHead(data)
-        msg.data = data[:cls.HEADER+GameObject.STATE_SIZE]
-        msg.state = data[cls.HEADER:cls.HEADER+GameObject.STATE_SIZE]
+        stateSize = GameObject.getStateSize(data[cls.HEADER:])
+        msg.data = data[:cls.HEADER+stateSize]
+        msg.state = data[cls.HEADER:cls.HEADER+stateSize]
         return msg
 
 class RemoveMessage(Message):

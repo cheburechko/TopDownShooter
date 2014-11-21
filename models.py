@@ -9,6 +9,8 @@ class Bullet(GameObject):
     TYPE = 0
     DAMAGE = 1
     speed = 400
+    STATE_FMT = "Ifff"
+    STATE_SIZE = 17
 
     def __init__(self, position, angle, owner=None, objId=None):
         GameObject.__init__(self, position, angle, self.SIZE, self.TYPE, objId, solid=False)
@@ -17,6 +19,16 @@ class Bullet(GameObject):
 
     def move(self, delta):
         GameObject.move(self, scale=delta*self.speed, angle=self.angle)
+
+    def getState(self):
+        state = chr(self.type) + struct.pack(self.STATE_FMT, self.id,
+                self.x, self.y, self.angle)
+        return state
+
+    def setState(self, state):
+        self.x = state[2]
+        self.y = state[3]
+        self.angle = state[4]
 
     @classmethod
     def fromState(cls, state):
@@ -31,6 +43,9 @@ class Player(GameObject):
     HEALTH = 5
     FIRE_PERIOD = 125
     FIRE_DIST = 1
+    STATE_FMT = "Ifffff"
+    STATE_SIZE = 25
+
     def __init__(self, position, angle, area, solids, objId=None):
         GameObject.__init__(self, position, angle, self.SIZE, self.TYPE, objId,
                 area=area, solids=solids)
@@ -42,6 +57,18 @@ class Player(GameObject):
         self.msgs = []
         self.currentMsg = None
         self.lastTimestamp = 0
+
+    def getState(self):
+        state = chr(self.type) + struct.pack(self.STATE_FMT, self.id,
+                self.x, self.y, self.speedx, self.speedy, self.angle)
+        return state
+
+    def setState(self, state):
+        self.x = state[2]
+        self.y = state[3]
+        self.speedx = state[4]
+        self.speedy = state[5]
+        self.angle = state[6]
 
     @classmethod
     def fromState(cls, state):
@@ -68,7 +95,7 @@ class Player(GameObject):
                 del self.msgs[0]
 
             while self.currentMsg is not None:
-                
+
                 delta = timestamp - self.lastTimestamp
                 if self.currentMsg.timestamp + self.currentMsg.msecs < timestamp:
                     delta = self.currentMsg.msecs - \
@@ -125,7 +152,7 @@ class Player(GameObject):
         return False
 
     def respawn(self):
-        GameObject.move(self, position=self.respPos)
+        #GameObject.move(self, position=self.respPos)
         self.health = self.HEALTH
         self.alive = True
 
@@ -136,12 +163,30 @@ class Mob(GameObject):
     HEALTH = 3
     FIRE_PERIOD = 1000
     FIRE_DIST = 1
+    STATE_FMT = "IffI"
+    STATE_SIZE = 17
+
     def __init__(self, position, angle, area, solids, objId=None):
         GameObject.__init__(self, position, angle, self.SIZE, self.TYPE, objId,
                             area=area, solids=solids)
         self.health = self.HEALTH
         self.next_shot = 0
         self.target = None
+
+    def getState(self):
+        t = self.target
+        if t is None:
+            t = 2**32 - 1
+        state = chr(self.type) + struct.pack(self.STATE_FMT, self.id,
+                self.x, self.y, t)
+        return state
+
+    def setState(self, state):
+        self.x = state[2]
+        self.y = state[3]
+        self.target = state[4]
+        if self.target == 2**32 - 1:
+            self.target = None
 
     @classmethod
     def fromState(cls, state):
@@ -154,12 +199,12 @@ class Mob(GameObject):
             return None
 
         if self.target is None:
-            self.target = players[int(random.random() * len(players))]
-        if not self.target.alive:
+            self.target = players.keys()[int(random.random() * len(players.keys()))]
+        if self.target not in players or not players[self.target].alive:
             self.target = None
             return None
 
-        self.rotate(vector=(self.target.x, self.target.y))
+        self.rotate(vector=(players[self.target].x, players[self.target].y))
         GameObject.move(self, angle=self.angle, scale=self.SPEED*delta)
 
         if self.next_shot < timestamp:

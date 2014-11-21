@@ -81,23 +81,18 @@ class GameObject():
         elif angle is not None:
             self.angle = angle
 
+    @classmethod
+    def getState(cls, self):
+        return cls.OBJECT_TYPES[self.type].getState(self)
 
-    def getState(self):
-        state = chr(self.type) + struct.pack(self.STATE_FMT, self.id,
-                self.x, self.y, self.speedx, self.speedy, self.angle)
-        return state
+    @classmethod
+    def getStateSize(cls, data):
+        return cls.OBJECT_TYPES[ord(data[0])].STATE_SIZE
 
     @classmethod
     def unpackState(cls, data):
-        state = (ord(data[0]),) + struct.unpack(cls.STATE_FMT, data[1:])
-        return state
-
-    def setState(self, state):
-        self.x = state[2]
-        self.y = state[3]
-        self.speedx = state[4]
-        self.speedy = state[5]
-        self.angle = state[6]
+        return (ord(data[0]),) + struct.unpack(
+            cls.OBJECT_TYPES[ord(data[0])].STATE_FMT, data[1:])
 
     @classmethod
     def fromState(cls, state):

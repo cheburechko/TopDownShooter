@@ -84,7 +84,7 @@ class ServerSimulation():
                     self.addObject(bullet)
 
             for mob in self.world[Mob.TYPE].values():
-                bullet = mob.step(self.world[Player.TYPE].values(),
+                bullet = mob.step(self.world[Player.TYPE],
                                   delta*self.TIME_SCALE,
                                   self.timestamp)
                 if bullet is not None:
