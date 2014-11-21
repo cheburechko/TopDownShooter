@@ -191,6 +191,12 @@ class UDPServer(SocketServer.ThreadingMixIn, SocketServer.UDPServer):
                 if (stamp - self.connections[key].lastTime) > self.timeout:
                     disconnected += [key]
             for key in disconnected:
+                packet = UDPPacket()
+                packet.connID=key
+                packet.data=UDPConnection.DISCONNECT
+                packet.msgID=0
+                packet.subID=0
+                packet.packets=1
                 self.disconnect(key)
             self.sendToAll(UDPConnection.KEEP_ALIVE)
     

@@ -4,7 +4,8 @@ import sys, thread
 
 def print_msgs(queue):
     while 1:
-        print "#:", queue.get().data
+        data = queue.get()
+        print "#:", data.data
 
 if __name__ == "__main__":
     queue = Queue()

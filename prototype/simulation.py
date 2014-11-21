@@ -1,13 +1,14 @@
 import pygame, sys, math
 from models import *
 from pygame.locals import *
+#import pygame.freetype as freetype
+pygame.font.init()
 
 BACKGROUND = (0, 128, 0)
 TIME_SCALE = 0.001
 FRAMES_PER_SECOND = 60
 SCREEN_AREA = (1024, 768)
 INITIAL_MOBS = 3
-
 
 screen = pygame.display.set_mode(SCREEN_AREA, DOUBLEBUF)
 screen.fill(BACKGROUND)
@@ -18,6 +19,10 @@ bullets = pygame.sprite.Group()
 mobs = pygame.sprite.Group()
 world = pygame.sprite.Group()
 solid_world = pygame.sprite.Group()
+
+font = pygame.font.SysFont("None", 24)
+title= font.render("Title", True, (0,0,0))
+chat_font = pygame.font.SysFont("None", 50))
 
 def clear_callback(surf, rect):
     surf.fill(BACKGROUND, rect)
@@ -62,7 +67,10 @@ for i in range(INITIAL_MOBS):
         mob.move(position=(random.random()*SCREEN_AREA[0], random.random()*SCREEN_AREA[1]))
 
 # SIMULATION
+r = title.get_rect()
 while True:
+    screen.fill(BACKGROUND, r)
+
     delta = clock.tick(FRAMES_PER_SECOND)
     timestamp = pygame.time.get_ticks()
 
@@ -117,5 +125,8 @@ while True:
     world.clear(screen, clear_callback)
     world.update()
     world.draw(screen)
+
+    r.center = (player.x, player.y + 15)
+    screen.blit(title, r.topleft)
 
     pygame.display.flip()

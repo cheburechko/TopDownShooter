@@ -10,6 +10,7 @@ def printMsgs(queue, server):
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         print 'Usage:script.py ip port'
+        sys.exit(0)
 
     queue = Queue.Queue()
 

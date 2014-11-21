@@ -73,29 +73,16 @@ class LocalSimulation():
             vert = horiz = 0
             msg = self.inputQ.get()
             if msg.type == Message.INPUT:
-                if msg.isSet(InputMessage.UP): 
-                    vert -= 1
-                if msg.isSet(InputMessage.DOWN):
-                    vert += 1
-                if msg.isSet(InputMessage.LEFT):
-                    horiz -= 1
-                if msg.isSet(InputMessage.RIGHT):
-                    horiz += 1
-
-                self.player.rotate(vector=(msg.cursorX, msg.cursorY))
-                if msg.isSet(InputMessage.FIRE):
-                    bullet = self.player.shoot(msg.timestamp)
-                    if bullet is not None:
-                        self.addObject(bullet)
-
-                self.player.move(horiz, vert, msg.msecs*self.TIME_SCALE, self.solid_world)
+                self.player.addMessage(msg)
             elif msg.type == Message.CHAT:
                 self.messages += [msg]
-            else:
+            elif mdg.type == Message.LIST:
                 self.sync(msg)
 
     def setPlayer(self, player):
         self.player = player
+
+                self.player.move(horiz, vert, msg.msecs*self.TIME_SCALE, self.solid_world)
         self.addObject(player)
 
 
@@ -104,11 +91,12 @@ class LocalSimulation():
             delta = self.clock.tick(self.FRAMES_PER_SECOND)
             t = pygame.time.get_ticks() + self.timestamp_offset
 
+            for player in self.players:
+                player.entity.
+
             for mob in self.mobs:
-                bullet = mob.step(self.players.sprites(), delta*self.TIME_SCALE, t, \
-                    self.solid_world)
-                if bullet is not None:
-                    self.addObject(bullet)
+                mob.entity.step(self.players.sprites(), delta*self.TIME_SCALE, t)
+
 
             for bullet in self.bullets:
                 bullet.move(delta*self.TIME_SCALE)
