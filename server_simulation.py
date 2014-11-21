@@ -1,6 +1,6 @@
 from models import *
 import pygame, itertools
-from messages import ListMessage
+from messages import ListMessage, EntityMessage
 
 class ServerSimulation():
     """
@@ -32,11 +32,10 @@ class ServerSimulation():
         del self.world[obj.type][obj.id]
         del self.solidWorld[obj.id]
 
-    @staticmethod
-    def getRandomPos():
+    def getRandomPos(self):
         return \
-            (random.random()*(BOUNDS[1]-BOUNDS[0]) + BOUNDS[0],\
-             random.random()*(BOUNDS[3] - BOUNDS[2]) + BOUNDS[2])
+            (random.random()*(self.BOUNDS[1]-self.BOUNDS[0]) + self.BOUNDS[0],
+             random.random()*(self.BOUNDS[3] - self.BOUNDS[2]) + self.BOUNDS[2])
 
     def placeRandom(self, obj):
         w = self.solidWorld.values()
@@ -44,8 +43,8 @@ class ServerSimulation():
             obj.move(position=self.getRandomPos())
 
     def addPlayer(self, msg):
-        player = Player(self.getRandomPos(), 0, msg.name,\
-                BOUNDS, self.solidWorld)
+        player = Player(self.getRandomPos(), 0, msg.name,
+                self.BOUNDS, self.solidWorld)
         self.placeRandom(player)
         self.addObject(player)
         return player.id
@@ -54,7 +53,7 @@ class ServerSimulation():
         self.world[Player.TYPE][id].addInput(msg)
 
     def removePlayer(self, id):
-        self.removeObject(world[Player.TYPE][id])
+        self.removeObject(self.world[Player.TYPE][id])
 
     def simulate(self):
         while self.alive:
@@ -67,16 +66,18 @@ class ServerSimulation():
                     self.addObject(bullet)
 
             for mob in self.world[Mob.TYPE].values():
-                bullet = mob.step(self.players.sprites(), delta*self.TIME_SCALE, t)
+                bullet = mob.step(self.world[Player.TYPE].values(),
+                                  delta*self.TIME_SCALE,
+                                  self.timestamp)
                 if bullet is not None:
                     self.addObject(bullet)
 
             for bullet in self.world[Bullet.TYPE].values():
                 bullet.move(delta*self.TIME_SCALE)
-                if (bullet.x < BOUNDS[0]) or \
-                    (bullet.x > BOUNDS[1]) or \
-                    (bullet.y < BOUNDS[2]) or \
-                    (bullet.y > BOUNDS[3]):
+                if (bullet.x < self.BOUNDS[0]) or \
+                    (bullet.x > self.BOUNDS[1]) or \
+                    (bullet.y < self.BOUNDS[2]) or \
+                    (bullet.y > self.BOUNDS[3]):
                         bullet.alive = False
                         self.removeObject(bullet)
 
@@ -100,6 +101,7 @@ class ServerSimulation():
 
     def getWorldState(self):
         state = ListMessage()
+        state.timestamp = self.timestamp
         for obj in list(itertools.chain.from_iterable(
                 [self.world[x].values() for x in self.world])):
             state.add(EntityMessage(obj))

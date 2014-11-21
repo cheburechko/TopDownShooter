@@ -1,7 +1,7 @@
 from udp import UDPServer
-import Queue, sys, thread
+import Queue, thread
 from server_simulation import ServerSimulation
-import messages
+from messages import *
 import pygame
 
 class Server():
@@ -39,16 +39,18 @@ class Server():
             if udpMsg.data == '':
                 self.sim.removePlayer(self.players[udpMsg.connID])
 
-            msg = messages.Message.getMessage(udpMsg.data)
+            msg = Message.getMessage(udpMsg.data)
             if msg.type == Message.CONNECT:
                 self.players[udpMsg.connID] = self.sim.addPlayer(msg)
+                self.server.send(ConnectMessage(str(self.players[udpMsg.connID])).toString(),
+                                 udpMsg.connID)
             elif msg.type == Message.CHAT:
                 self.server.sendToAll(udpMsg.data)
             elif msg.type == Message.INPUT:
                 self.sim.receiveInput(self.players[udpMsg.connID], msg)
 
+server = Server(('localhost', 7000))
 try:
-    server = Server(('localhost', 7000))
     server.broadcastState()
 except KeyboardInterrupt:
     server.kill()

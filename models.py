@@ -1,4 +1,5 @@
 import math, pygame, random, struct
+from messages import InputMessage
 
 class GameObject():
     ID = 0
@@ -10,7 +11,7 @@ class GameObject():
         cls.ID += 1
         return cls.ID - 1
 
-    def __init__(self, position, angle, size, objType, objId=None, solid=True, \
+    def __init__(self, position, angle, size, objType, objId=None, solid=True,
             area=None, solids=None):
         self.x = position[0]
         self.y = position[1]
@@ -81,13 +82,13 @@ class GameObject():
 
 
     def getState(self):
-        state = chr(self.type) + struct.pack(self.STATE_FMT, self.id, \
+        state = chr(self.type) + struct.pack(self.STATE_FMT, self.id,
                 self.x, self.y, self.speedx, self.speedy, self.angle)
         return state
 
     @classmethod
     def unpackState(cls, data):
-        state  = (ord(data[0]),) + struct.unpack(cls.STATE_FMT, data[1:])
+        state = (ord(data[0]),) + struct.unpack(cls.STATE_FMT, data[1:])
         return state
 
     def setState(self, state):
@@ -111,6 +112,7 @@ class Bullet(GameObject):
     def move(self, delta):
         GameObject.move(self, scale=delta*self.speed, angle=self.angle)
 
+
 class Player(GameObject):
     SIZE = 10
     SPEED = 150
@@ -119,7 +121,7 @@ class Player(GameObject):
     FIRE_PERIOD = 125
     FIRE_DIST = 1
     def __init__(self, position, angle, name, area, solids, objId=None):
-        GameObject.__init__(self, position, angle, self.SIZE, self.TYPE, objId,\
+        GameObject.__init__(self, position, angle, self.SIZE, self.TYPE, objId,
                 area=area, solids=solids)
 
         self.health = self.HEALTH
@@ -191,9 +193,9 @@ class Player(GameObject):
     def shoot(self, timestamp):
         if self.next_shot < timestamp:
             dist = self.size + self.FIRE_DIST + Bullet.SIZE
-            bullet = Bullet((self.x + math.cos(self.angle) * dist,\
-                         self.y + math.sin(self.angle) * dist),\
-                         self.angle, self)
+            bullet = Bullet((self.x + math.cos(self.angle) * dist,
+                             self.y + math.sin(self.angle) * dist),
+                            self.angle, self)
             self.next_shot = timestamp + self.FIRE_PERIOD
             return bullet
 
@@ -225,7 +227,7 @@ class Mob(GameObject):
         self.target = None
         print self.id
 
-    def step(self, players, delta, timestamp, solidWorld):
+    def step(self, players, delta, timestamp):
         if len(players) == 0:
             return None
 
@@ -236,14 +238,14 @@ class Mob(GameObject):
             return None
 
         self.rotate(vector=(self.target.x, self.target.y))
-        GameObject.move(self, angle=self.angle, scale=self.SPEED*delta, solidWorld=solidWorld)
+        GameObject.move(self, angle=self.angle, scale=self.SPEED*delta)
 
         if self.next_shot < timestamp:
             self.next_shot = timestamp + self.FIRE_PERIOD
             dist = self.size + self.FIRE_DIST + Bullet.SIZE
-            bullet = Bullet((self.x + math.cos(self.angle) * dist,\
-                         self.y + math.sin(self.angle) * dist),\
-                         self.angle, self)
+            bullet = Bullet((self.x + math.cos(self.angle) * dist,
+                             self.y + math.sin(self.angle) * dist),
+                            self.angle, self)
             return bullet
 
         return None
@@ -260,6 +262,7 @@ class GameObjectSprite(pygame.sprite.Sprite):
 
     def __init__(self, entity, image):
         self.entity = entity
+        self.entity.sprite = self
         self.src_image = image
 
     def update(self):

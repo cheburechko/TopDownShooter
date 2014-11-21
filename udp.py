@@ -103,6 +103,10 @@ class UDPConnection():
         self.msgID += 1
 
     def receivePacket(self, packet):
+        if packet.data == self.KEEP_ALIVE:
+            self.lastTime = time.time()
+            return None
+
         if packet.msgID in self.messages:
             self.messages[packet.msgID].add(packet)
         else:
@@ -121,8 +125,6 @@ class UDPConnection():
             #print 'Receiving...'
             packet = UDPPacket(self.socket.recv(UDPPacket.PACKET_SIZE))
             #print packet.msgID, packet.packets, packet.subID, packet.data
-            if packet.data == self.KEEP_ALIVE:
-                continue
 
             msg = self.receivePacket(packet)
             if msg is not None:
@@ -141,8 +143,6 @@ class UDPHandler(SocketServer.BaseRequestHandler):
 
         if packet.data == UDPConnection.INITIAL_MSG:
             self.server.createConnection(self.client_address, self.request[1])
-        elif packet.data == UDPConnection.KEEP_ALIVE:
-            pass
         elif packet.data == UDPConnection.DISCONNECT:
             self.server.disconnect(packet)
         else:
@@ -191,13 +191,14 @@ class UDPServer(SocketServer.ThreadingMixIn, SocketServer.UDPServer):
                 if (stamp - self.connections[key].lastTime) > self.timeout:
                     disconnected += [key]
             for key in disconnected:
+                #print 'Disconnecting', key
                 packet = UDPPacket()
                 packet.connID=key
                 packet.data=UDPConnection.DISCONNECT
                 packet.msgID=0
                 packet.subID=0
                 packet.packets=1
-                self.disconnect(key)
+                self.disconnect(packet)
             self.sendToAll(UDPConnection.KEEP_ALIVE)
     
     def shutdown(self):

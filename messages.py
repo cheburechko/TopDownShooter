@@ -8,6 +8,7 @@ class Message():
     CONNECT = 3
     ENTITY = 4
     PING = 5
+    TYPE = None
 
     HEADER = 5
     MSG_TYPES = {}
@@ -65,7 +66,7 @@ class InputMessage(Message):
         self.cursorY = pos[1]
 
     def toString(self):
-        self.data = Message.toString(self) + struct.pack(self.FORMAT, \
+        self.data = Message.toString(self) + struct.pack(self.FORMAT,
                 self.cursorX, self.cursorY, self.timestamp, self.msecs, self.mask)
         return self.data
 

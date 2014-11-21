@@ -15,6 +15,9 @@ class LocalSimulation():
     TIME_SCALE = 0.001
     FRAMES_PER_SECOND = 60
     SCREEN_AREA = (1024, 768)
+    PLAYER_IMG = pygame.sprite.load("resources/Player.png")
+    BULLET_IMG= pygame.sprite.load("resources/Bullet.png")
+    MOB_IMG = pygame.sprite.load("resources/Mob.png")
 
     def __init__(self, inputQ):
 
@@ -28,11 +31,11 @@ class LocalSimulation():
         self.timestamp_offset = 0
 
         # Entities
-        self.players = pygame.sprite.Group() 
-        self.bullets = pygame.sprite.Group()
-        self.mobs = pygame.sprite.Group()
-        self.world = pygame.sprite.Group()
-        self.solid_world = pygame.sprite.Group()
+        self.players = {}
+        self.bullets = {}
+        self.mobs = {}
+        self.solid_world = {}
+        self.sprites = pygame.sprite.Group()
 
         # Fonts
         self.playerFont = pygame.font.SysFont("None", 24)
@@ -44,45 +47,47 @@ class LocalSimulation():
         surf.fill(self.BACKGROUND, rect)
 
     def removeObject(self, obj):
+        ID = obj.id
         if obj.type == Player.TYPE:
-            self.players.remove(obj)
+            self.players[ID] = obj
         elif obj.type == Bullet.TYPE:
-            self.bullets.remove(obj)
+            self.bullets[ID] = obj
         elif obj.type == Mob.TYPE:
-            self.mobs.remove(obj)
+            self.mobs[ID] = obj
         if obj.solid:
-            self.solid_world.remove(obj)
+            self.solid_world[ID] = obj
     
-        self.world.remove(obj)
+        self.sprites.remove(obj.sprite)
     
     def addObject(self, obj):
         ID = obj.id
+        sprite = None
         if obj.type == Player.TYPE:
-            self.players.add(obj)
+            self.players[ID] = obj
+            sprite = GameObjectSprite(obj, self.PLAYER_IMG)
         elif obj.type == Bullet.TYPE:
-            self.bullets.add(obj)
+            self.bullets[ID] = obj
+            sprite = GameObjectSprite(obj, self.BULLET_IMG)
         elif obj.type == Mob.TYPE:
-            self.mobs.add(obj)
+            self.mobs[ID] = obj
+            sprite = GameObjectSprite(obj, self.MOB_IMG)
         if obj.solid:
             self.solid_world.add(obj)
     
-        self.world.add(obj)
+        self.world.add(sprite)
 
     def processInputForever(self):
         while self.alive:
-            vert = horiz = 0
             msg = self.inputQ.get()
             if msg.type == Message.INPUT:
-                self.player.addMessage(msg)
+                self.player.addInput(msg)
             elif msg.type == Message.CHAT:
                 self.messages += [msg]
-            elif mdg.type == Message.LIST:
+            elif msg.type == Message.LIST:
                 self.sync(msg)
 
     def setPlayer(self, player):
         self.player = player
-
-                self.player.move(horiz, vert, msg.msecs*self.TIME_SCALE, self.solid_world)
         self.addObject(player)
 
 
@@ -91,40 +96,26 @@ class LocalSimulation():
             delta = self.clock.tick(self.FRAMES_PER_SECOND)
             t = pygame.time.get_ticks() + self.timestamp_offset
 
-            for player in self.players:
-                player.entity.
+            player.step(timestamp=t, real=False)
 
-            for mob in self.mobs:
-                mob.entity.step(self.players.sprites(), delta*self.TIME_SCALE, t)
+            for id in self.players:
+                if id != self.player.id:
+                    self.players[id].step(controlled=False, delta=delta, real=False)
 
+            for id in self.mobs:
+                self.mobs[id].step(self.players.values(), delta*self.TIME_SCALE, t)
 
-            for bullet in self.bullets:
-                bullet.move(delta*self.TIME_SCALE)
-                if (bullet.x < 0) or (bullet.x > self.SCREEN_AREA[0]) or\
-                    (bullet.y < 0) or (bullet.y > self.SCREEN_AREA[1]):
-                        bullet.alive = False
-                        self.removeObject(bullet)
-
-            for player in self.players:
-                for bullet in player.collisions(self.bullets):
-                    bullet.alive = False
-                    self.removeObject(bullet)
-                    if (player.hit(Bullet.DAMAGE)):
-                        player.respawn()
-                        break
-
-            for mob in self.mobs:
-                for bullet in mob.collisions(self.bullets):
-                    bullet.alive = False
-                    self.removeObject(bullet)
-                    if (mob.hit(Bullet.DAMAGE)):
-                        self.removeObject(mob)
+            for id in self.bullets:
+                self.bullets[id].move(delta*self.TIME_SCALE)
 
             self.world.clear(self.screen, self.drawBackground)
             self.world.update()
             self.world.draw(self.screen)
 
             pygame.display.flip()
+
+    def sync(self, list):
+        pass
 
 class InputControl():
 
