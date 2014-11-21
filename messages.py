@@ -1,5 +1,5 @@
 import struct
-from models import GameObject
+from game_object import GameObject
 
 class Message():
     INPUT = 0
@@ -234,3 +234,4 @@ Message.registerType(ListMessage)
 Message.registerType(ConnectMessage)
 Message.registerType(EntityMessage)
 Message.registerType(PingMessage)
+Message.registerType(RemoveMessage)

@@ -38,6 +38,7 @@ class Server():
             udpMsg = self.msgQ.get()
             if udpMsg.data == '':
                 self.sim.removePlayer(self.players[udpMsg.connID])
+                continue
 
             msg = Message.getMessage(udpMsg.data)
             if msg.type == Message.CONNECT:

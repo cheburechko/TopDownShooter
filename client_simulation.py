@@ -15,6 +15,7 @@ class LocalSimulation():
     TIME_SCALE = 0.001
     FRAMES_PER_SECOND = 60
     SCREEN_AREA = (1024, 768)
+    BOUNDS = (0, 1024, 0, 768)
     PLAYER_IMG = pygame.image.load("resources/Player.png")
     BULLET_IMG= pygame.image.load("resources/Bullet.png")
     MOB_IMG = pygame.image.load("resources/Mob.png")
@@ -75,7 +76,7 @@ class LocalSimulation():
             self.mobs[ID] = obj
             sprite = GameObjectSprite(obj, self.MOB_IMG)
         if obj.solid:
-            self.solid_world.add(obj)
+            self.solid_world[ID] = obj
     
         self.sprites.add(sprite)
 

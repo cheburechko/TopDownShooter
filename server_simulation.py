@@ -87,7 +87,7 @@ class ServerSimulation():
                         self.world[Bullet.TYPE].values()):
                     bullet.alive = False
                     self.removeObject(bullet)
-                    if (player.hit(Bullet.DAMAGE)):
+                    if player.hit(Bullet.DAMAGE):
                         player.respawn()
                         self.placeRandom(player)
                         break

@@ -64,7 +64,7 @@ class GameObject():
 
         if self.solid:
             if self.solids is not None:
-                cols = self.collisions(self.solids)
+                cols = self.collisions(self.solids.values())
                 if len(cols) > 0:
                     self.x = oldPos[0]
                     self.y = oldPos[1]

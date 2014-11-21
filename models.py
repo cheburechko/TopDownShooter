@@ -10,16 +10,17 @@ class Bullet(GameObject):
     DAMAGE = 1
     speed = 400
 
-    def __init__(self, position, angle, owner, objId=None):
+    def __init__(self, position, angle, owner=None, objId=None):
         GameObject.__init__(self, position, angle, self.SIZE, self.TYPE, objId, solid=False)
-        self.owner = owner.id
+        if owner is not None:
+            self.owner = owner.id
 
     def move(self, delta):
         GameObject.move(self, scale=delta*self.speed, angle=self.angle)
 
     @classmethod
     def fromState(cls, state):
-        obj = Bullet((0, 0), 0, None, state[1])
+        obj = Bullet((0, 0), 0, None, objId=state[1])
         obj.setState(state)
         return obj
 
@@ -62,7 +63,7 @@ class Player(GameObject):
             if self.currentMsg is None:
                 if len(self.msgs) == 0:
                     return result
-                self.currentMsg = self.msgs[0]
+                self.currentMsg = self.msgs[0][1]
                 del self.msgs[0]
 
             while self.currentMsg is not None:
@@ -73,15 +74,15 @@ class Player(GameObject):
 
                 self.lastTimestamp += delta
 
-                horiz = vert = 0
+                self.speedx = self.speedy = 0
                 if self.currentMsg.isSet(InputMessage.UP): 
-                    vert -= 1
+                    self.speedy -= 1
                 if self.currentMsg.isSet(InputMessage.DOWN):
-                    vert += 1
+                    self.speedy += 1
                 if self.currentMsg.isSet(InputMessage.LEFT):
-                    horiz -= 1
+                    self.speedx -= 1
                 if self.currentMsg.isSet(InputMessage.RIGHT):
-                    horiz += 1
+                    self.speedx += 1
 
                 self.rotate(vector=(self.currentMsg.cursorX, self.currentMsg.cursorY))
                 if real:
@@ -90,15 +91,16 @@ class Player(GameObject):
                         if bullet is not None:
                             result += [bullet]
 
-                self.move(horiz, vert, delta*0.001)
+                self.move(self.speedx, self.speedy, delta*0.001)
                 if self.lastTimestamp < timestamp:
                     if len(self.msgs) == 0:
                         self.currentMsg = None
                     else:
-                        self.currentMsg = self.msgs[0]
+                        self.currentMsg = self.msgs[0][1]
                         del self.msgs[0]
                 else:
                     break
+            return result
         else:
             self.move(self.speedx, self.speedy, delta)
 
@@ -182,6 +184,7 @@ class Mob(GameObject):
 class GameObjectSprite(pygame.sprite.Sprite):
 
     def __init__(self, entity, image):
+        pygame.sprite.Sprite.__init__(self)
         self.entity = entity
         self.entity.sprite = self
         self.src_image = image

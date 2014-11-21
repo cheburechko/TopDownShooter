@@ -49,7 +49,7 @@ assert newMsg.timestamp == connectMessage.timestamp, 'timestamp'
 assert newMsg.name == connectMessage.name, 'name'
 
 print "Entity message:"
-player = Player((100, 100,), 27, "Peter", (0, 0, 100, 100), {})
+player = Player((100, 100,), 27, (0, 0, 100, 100), {})
 player.speedx = 27
 player.speedy = 43
 entityMessage = EntityMessage(player)
@@ -57,7 +57,7 @@ data = entityMessage.toString()
 
 
 newMsg = Message.getMessage(data)
-newPlayer = Player((0, 0), 0, "", (0), {})
+newPlayer = Player((0, 0), 0, (0), {})
 state = GameObject.unpackState(newMsg.state)
 newPlayer.setState(state)
 assert state[0] == player.type, 'type'
