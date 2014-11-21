@@ -1,10 +1,13 @@
 import math, pygame, random, struct
 from messages import InputMessage
 
+
 class GameObject():
+
     ID = 0
     STATE_FMT = "Ifffff"
     STATE_SIZE = 25
+    OBJECT_TYPES = {}
 
     @classmethod
     def getID(cls):
@@ -97,7 +100,14 @@ class GameObject():
         self.speedx = state[4]
         self.speedy = state[5]
         self.angle = state[6]
-    
+
+    @classmethod
+    def fromState(cls, state):
+        return cls.OBJECT_TYPES[state[0]].fromState(state)
+
+    @classmethod
+    def registerType(cls, type):
+        cls.OBJECT_TYPES[type.TYPE] = type
 
 class Bullet(GameObject):
     SIZE = 5
@@ -112,6 +122,11 @@ class Bullet(GameObject):
     def move(self, delta):
         GameObject.move(self, scale=delta*self.speed, angle=self.angle)
 
+    @classmethod
+    def fromState(cls, state):
+        obj = Bullet((0, 0), 0, None, state[1])
+        obj.setState(state)
+        return obj
 
 class Player(GameObject):
     SIZE = 10
@@ -120,18 +135,23 @@ class Player(GameObject):
     HEALTH = 5
     FIRE_PERIOD = 125
     FIRE_DIST = 1
-    def __init__(self, position, angle, name, area, solids, objId=None):
+    def __init__(self, position, angle, area, solids, objId=None):
         GameObject.__init__(self, position, angle, self.SIZE, self.TYPE, objId,
                 area=area, solids=solids)
 
         self.health = self.HEALTH
         self.next_shot = 0
         self.respPos = position
-        self.name = name
 
         self.msgs = []
         self.currentMsg = None
         self.lastTimestamp = 0
+
+    @classmethod
+    def fromState(cls, state):
+        obj = Player((0, 0), 0, None, None, state[1])
+        obj.setState(state)
+        return obj
 
     def addInput(self, msg):
         if self.currentMsg is not None:
@@ -220,12 +240,18 @@ class Mob(GameObject):
     HEALTH = 3
     FIRE_PERIOD = 1000
     FIRE_DIST = 1
-    def __init__(self, position, angle, objId=None):
-        GameObject.__init__(self, position, angle, self.SIZE, self.TYPE, objId)
+    def __init__(self, position, angle, area, solids, objId=None):
+        GameObject.__init__(self, position, angle, self.SIZE, self.TYPE, objId,
+                            area=area, solids=solids)
         self.health = self.HEALTH
         self.next_shot = 0
         self.target = None
-        print self.id
+
+
+    def fromState(cls, state):
+        obj = Mob((0, 0), 0, None, None, state[1])
+        obj.setState(state)
+        return obj
 
     def step(self, players, delta, timestamp):
         if len(players) == 0:
@@ -269,3 +295,7 @@ class GameObjectSprite(pygame.sprite.Sprite):
         self.image = pygame.transform.rotate(self.src_image, -self.entity.angle / math.pi * 180 - 90)
         self.rect = self.image.get_rect()
         self.rect.center = (self.entity.x, self.entity.y)
+
+GameObject.registerType(Mob)
+GameObject.registerType(Player)
+GameObject.registerType(Bullet)

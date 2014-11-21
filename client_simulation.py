@@ -1,9 +1,9 @@
-import pygame, sys, math, Queue, thread
+import pygame, Queue, thread, time
 from models import *
 from pygame.locals import *
 from messages import *
 from udp import UDPClient
-#import pygame.freetype as freetype
+
 pygame.font.init()
 
 class LocalSimulation():
@@ -15,9 +15,9 @@ class LocalSimulation():
     TIME_SCALE = 0.001
     FRAMES_PER_SECOND = 60
     SCREEN_AREA = (1024, 768)
-    PLAYER_IMG = pygame.sprite.load("resources/Player.png")
-    BULLET_IMG= pygame.sprite.load("resources/Bullet.png")
-    MOB_IMG = pygame.sprite.load("resources/Mob.png")
+    PLAYER_IMG = pygame.image.load("resources/Player.png")
+    BULLET_IMG= pygame.image.load("resources/Bullet.png")
+    MOB_IMG = pygame.image.load("resources/Mob.png")
 
     def __init__(self, inputQ):
 
@@ -34,8 +34,11 @@ class LocalSimulation():
         self.players = {}
         self.bullets = {}
         self.mobs = {}
+        self.world = {Player.TYPE: self.players, Bullet.TYPE: self.bullets,
+                      Mob.TYPE: self.mobs}
         self.solid_world = {}
         self.sprites = pygame.sprite.Group()
+        self.playerID = None
 
         # Fonts
         self.playerFont = pygame.font.SysFont("None", 24)
@@ -74,33 +77,32 @@ class LocalSimulation():
         if obj.solid:
             self.solid_world.add(obj)
     
-        self.world.add(sprite)
+        self.sprites.add(sprite)
 
     def processInputForever(self):
         while self.alive:
             msg = self.inputQ.get()
             if msg.type == Message.INPUT:
-                self.player.addInput(msg)
+                if self.playerID is not None and self.playerID in self.players:
+                    self.players[self.playerID].addInput(msg)
             elif msg.type == Message.CHAT:
                 self.messages += [msg]
             elif msg.type == Message.LIST:
                 self.sync(msg)
+            elif msg.type == Message.CONNECT:
+                self.setPlayer(int(msg.name))
 
-    def setPlayer(self, player):
-        self.player = player
-        self.addObject(player)
-
+    def setPlayer(self, id):
+        self.playerID = id
 
     def renderForever(self):
         while self.alive:
             delta = self.clock.tick(self.FRAMES_PER_SECOND)
             t = pygame.time.get_ticks() + self.timestamp_offset
 
-            player.step(timestamp=t, real=False)
-
             for id in self.players:
-                if id != self.player.id:
-                    self.players[id].step(controlled=False, delta=delta, real=False)
+                self.players[id].step(controlled=self.playerID==id,
+                                      timestamp=t, delta=delta, real=False)
 
             for id in self.mobs:
                 self.mobs[id].step(self.players.values(), delta*self.TIME_SCALE, t)
@@ -108,14 +110,33 @@ class LocalSimulation():
             for id in self.bullets:
                 self.bullets[id].move(delta*self.TIME_SCALE)
 
-            self.world.clear(self.screen, self.drawBackground)
-            self.world.update()
-            self.world.draw(self.screen)
+            self.sprites.clear(self.screen, self.drawBackground)
+            self.sprites.update()
+            self.sprites.draw(self.screen)
 
             pygame.display.flip()
 
     def sync(self, list):
-        pass
+        self.timestamp_offset = list.timestamp - pygame.time.get_ticks()
+
+        for msg in list.msgs:
+            if msg.type == Message.ENTITY:
+                state = GameObject.unpackState(msg.state)
+                if state[1] in self.world[state[0]]:
+                    self.world[state[0]][state[1]].setState(state)
+                else:
+                    obj = GameObject.fromState(state)
+                    if state[1] == Player.TYPE:
+                        obj.lastTimestamp = list.timestamp
+                    if state[1] != Bullet.TYPE:
+                        obj.area = self.BOUNDS
+                        obj.solids = self.solid_world
+
+                    self.addObject(obj)
+            elif msg.type == Message.REMOVE:
+                self.removeObject(self.world[msg.objType][msg.id])
+
+
 
 class InputControl():
 
@@ -172,17 +193,6 @@ q = Queue.Queue()
 sim = LocalSimulation(q)
 client = UDPClient(('localhost', 7000), q)
 ic = InputControl(client, q)
-
-player = Player((100, 100), 0)
-sim.setPlayer(player)
-
-INITIAL_MOBS = 3
-for i in range(INITIAL_MOBS):
-    pos = (random.random()*sim.SCREEN_AREA[0], random.random()*sim.SCREEN_AREA[1])
-    mob = Mob(pos, 0)
-    sim.addObject(mob)
-    if len(mob.collisions(sim.world)) > 0:
-        mob.move(position=(random.random()*sim.SCREEN_AREA[0], random.random()*sim.SCREEN_AREA[1]))
 
 thread.start_new_thread(sim.processInputForever, ())
 thread.start_new_thread(client.receive, ())

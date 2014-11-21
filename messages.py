@@ -1,5 +1,5 @@
 import struct
-from models import GameObject
+from models import *
 
 class Message():
     INPUT = 0
@@ -8,6 +8,7 @@ class Message():
     CONNECT = 3
     ENTITY = 4
     PING = 5
+    REMOVE = 6
     TYPE = None
 
     HEADER = 5
@@ -184,6 +185,31 @@ class EntityMessage(Message):
         msg.getHead(data)
         msg.data = data[:cls.HEADER+GameObject.STATE_SIZE]
         msg.state = data[cls.HEADER:cls.HEADER+GameObject.STATE_SIZE]
+        return msg
+
+class RemoveMessage(Message):
+
+    TYPE = chr(Message.REMOVE)
+
+    def __init__(self, type=0, id=0):
+        Message.__init__(self, Message.REMOVE)
+        self.id = id
+        self.objType = type
+
+    def toString(self):
+        data = struct.pack("IB", self.id, self.objType)
+        self.data = Message.toString(self) + \
+                    data
+        return self.data
+
+    @classmethod
+    def fromString(cls, data):
+        msg = RemoveMessage()
+        msg.getHead(data)
+        msg.data = data[:cls.HEADER+5]
+        data = struct.unpack("IB", data[cls.HEADER:cls.HEADER+5])
+        msg.id = data[0]
+        msg.objType = data[1]
         return msg
 
 class PingMessage(Message):
