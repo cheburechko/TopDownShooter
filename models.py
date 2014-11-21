@@ -1,8 +1,9 @@
-import math, pygame, random
+import math, pygame, random, struct
 
 class GameObject():
     ID = 0
     STATE_FMT = "Ifffff"
+    STATE_SIZE = 25
 
     @classmethod
     def getID(cls):
@@ -11,7 +12,6 @@ class GameObject():
 
     def __init__(self, position, angle, size, objType, objId=None, solid=True, \
             area=None, solids=None):
-        pygame.sprite.Sprite.__init__(self)
         self.x = position[0]
         self.y = position[1]
         self.angle = angle
@@ -80,15 +80,14 @@ class GameObject():
             self.angle = angle
 
 
-    @classmethod
-    def getState(cls, self):
-        state = chr(self.type) + struct.pack(cls.STATE_FMT, self.id, \
+    def getState(self):
+        state = chr(self.type) + struct.pack(self.STATE_FMT, self.id, \
                 self.x, self.y, self.speedx, self.speedy, self.angle)
         return state
 
     @classmethod
     def unpackState(cls, data):
-        state  = [ord(data[0])] + struct.unpack(cls.STATE_FMT, data[1:])
+        state  = (ord(data[0]),) + struct.unpack(cls.STATE_FMT, data[1:])
         return state
 
     def setState(self, state):

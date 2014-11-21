@@ -1,4 +1,5 @@
 import struct
+from models import GameObject
 
 class Message():
     INPUT = 0
@@ -21,7 +22,7 @@ class Message():
         return self.data
 
     def getHead(self, data):
-        self.timestamp = struct.unpack("I", data[1:5])
+        self.timestamp = struct.unpack("I", data[1:5])[0]
 
     @classmethod
     def registerType(cls, msgClass):
@@ -39,6 +40,7 @@ class InputMessage(Message):
     RIGHT = 3
     FIRE = 4
     FORMAT = "ffIHB"
+    FORMAT_SIZE = 15
 
     TYPE = chr(Message.INPUT)
 
@@ -71,8 +73,8 @@ class InputMessage(Message):
     def fromString(cls, data):
         msg = InputMessage()
         msg.getHead(data)
-        msg.data = data
-        parts = struct.unpack(cls.FORMAT, data[HEADER:HEADER+16])
+        msg.data = data[:cls.HEADER+cls.FORMAT_SIZE]
+        parts = struct.unpack(cls.FORMAT, data[cls.HEADER:cls.HEADER+cls.FORMAT_SIZE])
         msg.cursorX = parts[0]
         msg.cursorY = parts[1]
         msg.timestamp = parts[2]
@@ -83,22 +85,30 @@ class InputMessage(Message):
 class ChatMessage(Message):
     
     TYPE = chr(Message.CHAT)
+    FORMAT = "II"
+    FORMAT_SIZE = 8
 
-    def __init__(self, msg=""):
+    def __init__(self, msg="", id=0):
         Message.__init__(self, Message.CHAT)
         self.msg = msg
+        self.id = id
 
     def toString(self):
-        self.data = Message.toString(self) + struct.pack("I", len(self.msg)) + self.data
+        self.data = Message.toString(self) + \
+                    struct.pack(self.FORMAT, self.id, len(self.msg)) +\
+                    self.msg
         return self.data
 
     @classmethod
     def fromString(cls, data):
         msg = ChatMessage()
         msg.getHead(data)
-        msg.data = data
-        size = struct.unpack("I", data[cls.HEADER:cls.HEADER+4])
-        msg.msg = data[cls.HEADER+4:cls.HEADER+4+size]
+        parts = struct.unpack(cls.FORMAT,
+                              data[cls.HEADER:cls.HEADER+cls.FORMAT_SIZE])
+        msg.id = parts[0]
+        size = parts[1]
+        msg.data = data[:cls.HEADER+cls.FORMAT_SIZE+size]
+        msg.msg = data[cls.HEADER+cls.FORMAT_SIZE:cls.HEADER+cls.FORMAT_SIZE+size]
         return msg
 
 class ListMessage(Message):
@@ -140,15 +150,17 @@ class ConnectMessage(Message):
         self.name = name
 
     def toString(self):
-        self.data = Message.toString(self) + self.name
+        self.data = Message.toString(self) + struct.pack("I", len(self.name))\
+                    + self.name
         return self.data
 
     @classmethod
     def fromString(cls, data):
         msg = ConnectMessage()
         msg.getHead(data)
-        msg.data = data
-        msg.name = data[cls.HEADER:]
+        size = struct.unpack("I", data[cls.HEADER:cls.HEADER+4])[0]
+        msg.data = data[:cls.HEADER+4+size]
+        msg.name = data[cls.HEADER+4:cls.HEADER+4+size]
         return msg
 
 class EntityMessage(Message):
@@ -160,15 +172,17 @@ class EntityMessage(Message):
         self.entity = entity
 
     def toString(self):
-        self.data= Message.toString(self) + self.entity.getState()
+        data = self.entity.getState()
+        self.data = Message.toString(self) + \
+                    data
         return self.data
 
     @classmethod
     def fromString(cls, data):
         msg = EntityMessage()
         msg.getHead(data)
-        msg.data = data
-        msg.state = data[cls.HEADER:]
+        msg.data = data[:cls.HEADER+GameObject.STATE_SIZE]
+        msg.state = data[cls.HEADER:cls.HEADER+GameObject.STATE_SIZE]
         return msg
 
 class PingMessage(Message):
