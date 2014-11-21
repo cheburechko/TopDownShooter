@@ -1,8 +1,8 @@
-import pygame, Queue, thread, time
 from models import *
 from pygame.locals import *
 from messages import *
-from udp import UDPClient
+import pygame
+from threading import Lock
 
 pygame.font.init()
 
@@ -40,6 +40,8 @@ class LocalSimulation():
         self.solid_world = {}
         self.sprites = pygame.sprite.Group()
         self.playerID = None
+
+        self.renderLock = Lock()
 
         # Fonts
         self.playerFont = pygame.font.SysFont("None", 24)
@@ -101,6 +103,8 @@ class LocalSimulation():
             delta = self.clock.tick(self.FRAMES_PER_SECOND)
             t = pygame.time.get_ticks() + self.timestamp_offset
 
+            self.renderLock.acquire()
+
             for id in self.players:
                 self.players[id].step(controlled=self.playerID==id,
                                       timestamp=t, delta=delta, real=False)
@@ -115,11 +119,14 @@ class LocalSimulation():
             self.sprites.update()
             self.sprites.draw(self.screen)
 
+            self.renderLock.release()
+
             pygame.display.flip()
 
     def sync(self, list):
         self.timestamp_offset = list.timestamp - pygame.time.get_ticks()
 
+        self.renderLock.acquire()
         for msg in list.msgs:
             if msg.type == Message.ENTITY:
                 state = GameObject.unpackState(msg.state)
@@ -135,7 +142,10 @@ class LocalSimulation():
 
                     self.addObject(obj)
             elif msg.type == Message.REMOVE:
-                self.removeObject(self.world[msg.objType][msg.id])
+                if msg.id in self.world[msg.objType]:
+                    self.removeObject(self.world[msg.objType][msg.id])
+
+        self.renderLock.release()
 
 
 

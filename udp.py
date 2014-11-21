@@ -32,7 +32,7 @@ class UDPPacket():
         Constructs packets from data
         """
         packets = []
-        amount = (len(data) - 1) / (cls.DATA_SIZE) + 1
+        amount = max((len(data) - 1) / (cls.DATA_SIZE) + 1, 1)
         for i in range(amount):
             item = cls()
             item.connID = connID
@@ -170,9 +170,10 @@ class UDPServer(SocketServer.ThreadingMixIn, SocketServer.UDPServer):
     def addPacket(self, packet):
         if self.verbose:
             print "Received from", packet.connID, ':', len(packet.data), 'bytes'
-        msg = self.connections[packet.connID].receivePacket(packet)
-        if msg is not None:
-            self.outputQ.put(msg)
+        if packet.connID in self.connections:
+            msg = self.connections[packet.connID].receivePacket(packet)
+            if msg is not None:
+                self.outputQ.put(msg)
 
     def send(self, data, connID):
         try:
@@ -197,13 +198,14 @@ class UDPServer(SocketServer.ThreadingMixIn, SocketServer.UDPServer):
             packet.subID=0
         if self.verbose:
             print "Disconnecting ", packet.connID
-        try:
-            self.connections[packet.connID].send(UDPConnection.DISCONNECT)
-        except:
-            pass
-        del self.connections[packet.connID]
-        packet.packets = 1
-        self.outputQ.put(UDPMessage(packet))
+        if packet.connID in self.connections:
+            try:
+                self.connections[packet.connID].send(UDPConnection.DISCONNECT)
+            except:
+                pass
+            del self.connections[packet.connID]
+            packet.packets = 1
+            self.outputQ.put(UDPMessage(packet))
 
     def keepAlive(self):
         while self.alive:

@@ -91,7 +91,7 @@ class Player(GameObject):
                         if bullet is not None:
                             result += [bullet]
 
-                self.move(self.speedx, self.speedy, delta*0.001)
+                self.move(vector=(self.speedx, self.speedy), scale=delta*0.001*self.SPEED)
                 if self.lastTimestamp < timestamp:
                     if len(self.msgs) == 0:
                         self.currentMsg = None
@@ -102,10 +102,7 @@ class Player(GameObject):
                     break
             return result
         else:
-            self.move(self.speedx, self.speedy, delta)
-
-    def move(self, dx, dy, delta):
-        GameObject.move(self, vector=(dx, dy), scale=delta*self.SPEED)
+            self.move(vector=(self.speedx, self.speedy), scale=delta*self.SPEED)
 
     def shoot(self, timestamp):
         if self.next_shot < timestamp:
@@ -144,7 +141,7 @@ class Mob(GameObject):
         self.next_shot = 0
         self.target = None
 
-
+    @classmethod
     def fromState(cls, state):
         obj = Mob((0, 0), 0, None, None, state[1])
         obj.setState(state)
