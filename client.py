@@ -12,13 +12,14 @@ class Client():
         self.udpq = Queue.Queue()
         self.sim = LocalSimulation(self.simq)
         self.client = UDPClient(address, self.udpq)
+        self.client.verbose = True
         self.ic = InputControl(self.client, self.simq)
 
         thread.start_new_thread(self.sim.processInputForever, ())
         thread.start_new_thread(self.client.receive, ())
         thread.start_new_thread(self.client.keepAlive, ())
         thread.start_new_thread(self.sim.renderForever, ())
-        thread.start_new_thread(self.ic.processInputForever())
+        thread.start_new_thread(self.ic.processInputForever, ())
 
         self.client.send(ConnectMessage(nick).toString())
 
@@ -36,6 +37,7 @@ class Client():
             udpMsg = self.udpq.get()
             if udpMsg.data == '':
                 self.kill()
+                break
 
             msg = Message.getMessage(udpMsg.data)
 

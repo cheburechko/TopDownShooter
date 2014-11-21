@@ -276,12 +276,22 @@ class UDPClient():
         packet.connID = self.connection.connID
         packet.packets = 1
         packet.subID = 0
+        packet.msgID = 0
         self.outputQ.put(UDPMessage(packet))
 
 
     def shutdown(self):
         if self.verbose:
             print "Shutting down..."
-
-        self.send(UDPConnection.DISCONNECT)
+        try:
+            self.connection.send(UDPConnection.DISCONNECT)
+        except:
+            pass
+        packet = UDPPacket()
+        packet.data = ''
+        packet.connID = self.connection.connID
+        packet.packets = 1
+        packet.subID = 0
+        packet.msgID = 0
+        self.outputQ.put(UDPMessage(packet))
         self.alive = False

@@ -44,7 +44,7 @@ class ServerSimulation():
             obj.move(position=self.getRandomPos())
 
     def addPlayer(self, msg):
-        player = Player(self.getRandomPos(), 0, msg.name,
+        player = Player(self.getRandomPos(), 0,
                 self.BOUNDS, self.solidWorld)
         self.placeRandom(player)
         self.addObject(player)

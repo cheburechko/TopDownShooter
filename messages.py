@@ -1,5 +1,5 @@
 import struct
-from models import *
+from models import GameObject
 
 class Message():
     INPUT = 0
