@@ -47,7 +47,8 @@ class Server():
             elif msg.type == Message.CHAT:
                 self.server.sendToAll(udpMsg.data)
             elif msg.type == Message.INPUT:
-                self.sim.receiveInput(self.players[udpMsg.connID], msg)
+                if (udpMsg.connID in self.players):
+                    self.sim.receiveInput(self.players[udpMsg.connID], msg)
 
 server = Server(('localhost', 7000))
 try:

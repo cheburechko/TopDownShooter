@@ -169,7 +169,7 @@ class InputControl():
                     elif event.key == K_w: self.k_up = down
                     elif event.key == K_s: self.k_down = down
                     elif event.key == K_ESCAPE: 
-                        client.shutdown()
+                        self.client.shutdown()
                         self.alive = False
                         break
 
@@ -185,17 +185,3 @@ class InputControl():
             msg.timestamp = timestamp + self.timestamp_offset
             self.client.send(msg.toString())
             self.outputQ.put(msg)
-
-
-
-# INITIALIZE
-q = Queue.Queue()
-sim = LocalSimulation(q)
-client = UDPClient(('localhost', 7000), q)
-ic = InputControl(client, q)
-
-thread.start_new_thread(sim.processInputForever, ())
-thread.start_new_thread(client.receive, ())
-thread.start_new_thread(client.keepAlive, ())
-thread.start_new_thread(sim.renderForever, ())
-ic.processInputForever()

@@ -1,7 +1,6 @@
 from models import *
 import pygame, itertools
-from messages import ListMessage, EntityMessage
-
+from messages import *
 class ServerSimulation():
     """
     This class simulates all of the game events
@@ -23,12 +22,14 @@ class ServerSimulation():
         self.world[Bullet.TYPE] = {}
         self.world[Mob.TYPE] = {}
         self.solidWorld = {}
+        self.removed = []
 
     def addObject(self, obj):
         self.world[obj.type][obj.id] = obj
         self.solidWorld[obj.id] = obj
 
     def removeObject(self, obj):
+        self.removed += [obj]
         del self.world[obj.type][obj.id]
         del self.solidWorld[obj.id]
 
@@ -105,5 +106,8 @@ class ServerSimulation():
         for obj in list(itertools.chain.from_iterable(
                 [self.world[x].values() for x in self.world])):
             state.add(EntityMessage(obj))
+        for obj in self.removed:
+            state.add(RemoveMessage(obj.type, obj.id))
+        self.removed = []
         return state
 
