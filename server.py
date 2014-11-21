@@ -11,11 +11,12 @@ class Server():
     def __init__(self, address):
         self.msgQ = Queue.Queue()
         self.server = UDPServer(address, self.msgQ)
-        self.server.verbose = True
+
         thread.start_new_thread(self.server.serve_forever, ())
         thread.start_new_thread(self.server.keepAlive, ())
 
         self.sim = ServerSimulation()
+        self.sim.verbose = True
         thread.start_new_thread(self.sim.simulate, ())
 
         self.players = {}

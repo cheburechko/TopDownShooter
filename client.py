@@ -2,20 +2,18 @@ import Queue, thread
 from client_simulation import LocalSimulation, InputControl
 from udp import UDPClient
 from messages import *
-
+import pygame
 
 class Client():
 
     def __init__(self, address, nick):
 
-        self.simq = Queue.Queue()
         self.udpq = Queue.Queue()
-        self.sim = LocalSimulation(self.simq)
+        self.sim = LocalSimulation()
         self.client = UDPClient(address, self.udpq)
-        self.client.verbose = True
-        self.ic = InputControl(self.client, self.simq)
+        self.sim.verbose = True
+        self.ic = InputControl(self.client, self.sim)
 
-        thread.start_new_thread(self.sim.processInputForever, ())
         thread.start_new_thread(self.client.receive, ())
         thread.start_new_thread(self.client.keepAlive, ())
         thread.start_new_thread(self.sim.renderForever, ())
@@ -40,8 +38,12 @@ class Client():
                 break
 
             msg = Message.getMessage(udpMsg.data)
+            # update offsets
+            self.sim.timestamp_offset = msg.timestamp - pygame.time.get_ticks()
+            #print "Offset:", self.ic.timestamp_offset
 
-            self.simq.put(msg)
+
+            self.sim.processInput(msg)
 
 client = Client(('localhost', 7000), 'any')
 try:

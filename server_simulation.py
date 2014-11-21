@@ -27,14 +27,18 @@ class ServerSimulation():
         self.solidWorld = {}
         self.removed = []
 
+        self.verbose = False
+
     def addObject(self, obj):
         self.world[obj.type][obj.id] = obj
-        self.solidWorld[obj.id] = obj
+        if obj.solid:
+            self.solidWorld[obj.id] = obj
 
     def removeObject(self, obj):
         self.removed += [obj]
         del self.world[obj.type][obj.id]
-        del self.solidWorld[obj.id]
+        if obj.solid:
+            del self.solidWorld[obj.id]
 
     def getRandomPos(self):
         return \
@@ -112,6 +116,7 @@ class ServerSimulation():
                     self.removeObject(bullet)
                     if (mob.hit(Bullet.DAMAGE)):
                         self.removeObject(mob)
+                        break
 
     def getWorldState(self):
         state = ListMessage()

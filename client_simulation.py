@@ -20,9 +20,8 @@ class LocalSimulation():
     BULLET_IMG= pygame.image.load("resources/Bullet.png")
     MOB_IMG = pygame.image.load("resources/Mob.png")
 
-    def __init__(self, inputQ):
+    def __init__(self):
 
-        self.inputQ = inputQ
         self.alive = True
 
         self.screen = pygame.display.set_mode(self.SCREEN_AREA, DOUBLEBUF)
@@ -55,13 +54,13 @@ class LocalSimulation():
     def removeObject(self, obj):
         ID = obj.id
         if obj.type == Player.TYPE:
-            self.players[ID] = obj
+            del self.players[ID]
         elif obj.type == Bullet.TYPE:
-            self.bullets[ID] = obj
+            del self.bullets[ID]
         elif obj.type == Mob.TYPE:
-            self.mobs[ID] = obj
+            del self.mobs[ID]
         if obj.solid:
-            self.solid_world[ID] = obj
+            del self.solid_world[ID]
     
         self.sprites.remove(obj.sprite)
     
@@ -82,35 +81,39 @@ class LocalSimulation():
     
         self.sprites.add(sprite)
 
-    def processInputForever(self):
-        while self.alive:
-            msg = self.inputQ.get()
-            if msg.type == Message.INPUT:
-                if self.playerID is not None and self.playerID in self.players:
-                    self.players[self.playerID].addInput(msg)
-            elif msg.type == Message.CHAT:
-                self.messages += [msg]
-            elif msg.type == Message.LIST:
-                self.sync(msg)
-            elif msg.type == Message.CONNECT:
-                self.setPlayer(int(msg.name))
+    def processInput(self, msg):
+        if msg.type == Message.INPUT:
+            if self.playerID is not None and self.playerID in self.players:
+                self.players[self.playerID].addInput(msg)
+        elif msg.type == Message.CHAT:
+            self.messages += [msg]
+        elif msg.type == Message.LIST:
+            self.sync(msg)
+        elif msg.type == Message.CONNECT:
+            self.setPlayer(int(msg.name))
 
     def setPlayer(self, id):
         self.playerID = id
 
     def renderForever(self):
+        fps = self.playerFont.render(str(self.clock.get_fps()), True, (0,0,0))
+        r = fps.get_rect()
+        r.topleft = (0, 0)
         while self.alive:
+
             delta = self.clock.tick(self.FRAMES_PER_SECOND)
-            t = pygame.time.get_ticks() + self.timestamp_offset
+            self.timestamp = pygame.time.get_ticks() + self.timestamp_offset
 
             self.renderLock.acquire()
 
+            self.drawBackground(self.screen, r)
+
             for id in self.players:
                 self.players[id].step(controlled=self.playerID==id,
-                                      timestamp=t, delta=delta, real=False)
+                                      timestamp=self.timestamp, delta=delta, real=False)
 
             for id in self.mobs:
-                self.mobs[id].step(self.players.values(), delta*self.TIME_SCALE, t)
+                self.mobs[id].step(self.players.values(), delta*self.TIME_SCALE, self.timestamp)
 
             for id in self.bullets:
                 self.bullets[id].move(delta*self.TIME_SCALE)
@@ -119,12 +122,17 @@ class LocalSimulation():
             self.sprites.update()
             self.sprites.draw(self.screen)
 
+            self.screen.blit(fps, (0, 0))
+
+            fps = self.playerFont.render(str(int(self.clock.get_fps())), True, (0,0,0))
+            r = fps.get_rect()
+            r.topleft = (0, 0)
+
             self.renderLock.release()
 
             pygame.display.flip()
 
     def sync(self, list):
-        self.timestamp_offset = list.timestamp - pygame.time.get_ticks()
 
         self.renderLock.acquire()
         for msg in list.msgs:
@@ -151,22 +159,21 @@ class LocalSimulation():
 
 class InputControl():
 
-    FRAMES_PER_SECOND = 30
+    FRAMES_PER_SECOND = 20
 
-    def __init__(self, client, q):
+    def __init__(self, client, sim):
         self.firing = False
         self.k_right = self.k_left = self.k_up = self.k_down = 0
         self.alive = True
         self.clock = pygame.time.Clock()
         self.client = client
-        self.outputQ = q
-        self.timestamp_offset = 0
+        self.sim = sim
 
     def processInputForever(self):
 
         while self.alive:
             delay = self.clock.tick(self.FRAMES_PER_SECOND)
-            timestamp = pygame.time.get_ticks()
+            timestamp = self.sim.timestamp
 
             for event in pygame.event.get():
                 if event.type == MOUSEBUTTONDOWN:
@@ -193,6 +200,7 @@ class InputControl():
 
             msg.setCursor(pygame.mouse.get_pos())
             msg.msecs = delay
-            msg.timestamp = timestamp + self.timestamp_offset
+            msg.timestamp = timestamp
+
             self.client.send(msg.toString())
-            self.outputQ.put(msg)
+            self.sim.processInput(msg)

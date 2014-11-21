@@ -60,6 +60,7 @@ class Player(GameObject):
     def step(self, controlled=True, delta=0, timestamp=0, real=True):
         result = []
         if controlled:
+
             if self.currentMsg is None:
                 if len(self.msgs) == 0:
                     return result
@@ -67,6 +68,7 @@ class Player(GameObject):
                 del self.msgs[0]
 
             while self.currentMsg is not None:
+                
                 delta = timestamp - self.lastTimestamp
                 if self.currentMsg.timestamp + self.currentMsg.msecs < timestamp:
                     delta = self.currentMsg.msecs - \
@@ -91,7 +93,6 @@ class Player(GameObject):
                         if bullet is not None:
                             result += [bullet]
 
-                self.move(vector=(self.speedx, self.speedy), scale=delta*0.001*self.SPEED)
                 if self.lastTimestamp < timestamp:
                     if len(self.msgs) == 0:
                         self.currentMsg = None
@@ -100,9 +101,10 @@ class Player(GameObject):
                         del self.msgs[0]
                 else:
                     break
-            return result
-        else:
-            self.move(vector=(self.speedx, self.speedy), scale=delta*self.SPEED)
+
+        self.move(vector=(self.speedx, self.speedy), scale=delta*0.001*self.SPEED)
+
+        return result
 
     def shoot(self, timestamp):
         if self.next_shot < timestamp:
