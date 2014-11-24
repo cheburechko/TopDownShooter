@@ -48,6 +48,7 @@ class Server():
                 continue
 
             msg = Message.getMessage(udpMsg.data)
+
             if msg.type == Message.CONNECT:
                 self.players[udpMsg.connID] = self.sim.addPlayer(msg)
                 self.server.send(ConnectMessage(str(self.players[udpMsg.connID])).toString(),

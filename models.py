@@ -135,7 +135,7 @@ class Player(GameObject):
                     break
 
         self.move(vector=(self.speedx, self.speedy), scale=delta*0.001*self.SPEED)
-
+        #print self.x, self.y, self.speedx, self.speedy, self.SPEED*delta*0.001
         return result
 
     def shoot(self, timestamp):

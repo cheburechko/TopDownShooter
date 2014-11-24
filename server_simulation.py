@@ -11,7 +11,7 @@ class ServerSimulation():
     SCREEN_AREA = (1024, 768)
     BOUNDS = (0, 1024, 0, 768)
     TIME_SCALE = 0.001
-    MAX_MOBS = 16
+    MAX_MOBS = 0
     MOB_RESPAWN_PERIOD = 3000
     PLAYER_RESPAWN_PERIOD = 3000
     PLAYER_COST = 5
@@ -163,6 +163,7 @@ class ServerSimulation():
 
     def getMeta(self):
         meta = ListMessage()
+        meta.timestamp = self.timestamp
         for entry in self.playerEntries:
             meta.add(MetaMessage(self.playerEntries[entry]))
         return meta
