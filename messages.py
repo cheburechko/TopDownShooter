@@ -263,8 +263,6 @@ class MetaMessage(Message):
             parts[0],
             data[cls.HEADER+cls.FORMAT_SIZE:cls.HEADER+cls.FORMAT_SIZE+parts[3]],
             score=parts[1], deaths=parts[2])
-        print msg.entry.toString()
-        print parts
         msg.data = data[:cls.HEADER+cls.FORMAT_SIZE+parts[3]]
         return msg
 

@@ -13,6 +13,8 @@ class LocalSimulation():
     and rendering stuff on screen
     """
     BACKGROUND = (0, 128, 0)
+    NICK_COLOR = (0, 0, 0)
+    NICK_OFFSET = 15;
     TIME_SCALE = 0.001
     FRAMES_PER_SECOND = 60
     SCREEN_AREA = (1024, 768)
@@ -39,8 +41,10 @@ class LocalSimulation():
                       Mob.TYPE: self.mobs}
         self.solid_world = {}
         self.sprites = pygame.sprite.Group()
+
         self.playerID = None
         self.playerEntries = {}
+        self.playerNicks = {}
 
         self.scoreBoard = ScoreBoard(self.screen, self.playerEntries, self.drawBackground)
         self.showScore = False
@@ -60,6 +64,10 @@ class LocalSimulation():
         ID = obj.id
         if obj.type == Player.TYPE:
             del self.players[ID]
+            if ID in self.playerNicks:
+                del self.playerNicks[ID]
+            if ID in self.playerEntries:
+                del self.playerEntries[ID]
         elif obj.type == Bullet.TYPE:
             del self.bullets[ID]
         elif obj.type == Mob.TYPE:
@@ -106,14 +114,16 @@ class LocalSimulation():
         r.topleft = (0, 0)
         while self.alive:
 
+            self.drawBackground(self.screen, r)
+
             self.scoreBoard.clear()
+            for id in self.playerNicks:
+                self.drawBackground(self.screen, self.playerNicks[id][1])
 
             delta = self.clock.tick(self.FRAMES_PER_SECOND)
             self.timestamp = pygame.time.get_ticks() + self.timestamp_offset
 
             self.renderLock.acquire()
-
-            self.drawBackground(self.screen, r)
 
             for id in self.players:
                 self.players[id].step(controlled=self.playerID==id,
@@ -129,14 +139,21 @@ class LocalSimulation():
             self.sprites.update()
             self.sprites.draw(self.screen)
 
+
+            for id in self.playerNicks:
+                self.playerNicks[id][1].center = (self.players[id].x,
+                                                  self.players[id].y+self.NICK_OFFSET)
+                self.screen.blit(self.playerNicks[id][0], self.playerNicks[id][1].topleft)
+
+            if self.showScore:
+                self.scoreBoard.draw()
+
             self.screen.blit(fps, (0, 0))
 
             fps = self.playerFont.render(str(int(self.clock.get_fps())), True, (0,0,0))
             r = fps.get_rect()
             r.topleft = (0, 0)
 
-            if self.showScore:
-                self.scoreBoard.draw()
 
             self.renderLock.release()
 
@@ -163,6 +180,11 @@ class LocalSimulation():
                 if msg.id in self.world[msg.objType]:
                     self.removeObject(self.world[msg.objType][msg.id])
             elif msg.type == Message.META:
+                if msg.entry.id not in self.playerNicks:
+                    nick = self.playerFont.render(msg.entry.name, True, self.NICK_COLOR)
+                    rect = nick.get_rect()
+                    self.playerNicks[msg.entry.id] = (nick, rect)
+
                 self.playerEntries[msg.entry.id] = msg.entry
 
         self.renderLock.release()

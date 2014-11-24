@@ -51,12 +51,13 @@ class ServerSimulation():
              random.random()*(self.BOUNDS[3] - self.BOUNDS[2]) + self.BOUNDS[2])
 
     def placeRandom(self, obj):
+        obj.move(position=self.getRandomPos())
         w = self.solidWorld.values()
         while len(obj.collisions(w)) != 0:
             obj.move(position=self.getRandomPos())
 
     def addPlayer(self, msg):
-        player = Player(self.getRandomPos(), 0,
+        player = Player((0,0), 0,
                 self.BOUNDS, self.solidWorld)
         self.placeRandom(player)
         self.addObject(player)
@@ -66,7 +67,7 @@ class ServerSimulation():
     def spawnMob(self):
         if self.timestamp > self.lastMob + self.MOB_RESPAWN_PERIOD and\
             len(self.world[Mob.TYPE]) < self.MAX_MOBS:
-            mob = Mob(self.getRandomPos(), 0, self.BOUNDS, self.solidWorld)
+            mob = Mob((0,0), 0, self.BOUNDS, self.solidWorld)
             self.placeRandom(mob)
             self.addObject(mob)
             self.lastMob = self.timestamp
@@ -129,9 +130,7 @@ class ServerSimulation():
                     self.removeObject(bullet)
                     if mob.hit(Bullet.DAMAGE):
 
-                        print bullet.owner
                         if bullet.owner in self.playerEntries:
-                            print 'Hit', self.playerEntries[bullet.owner].toString()
                             self.playerEntries[bullet.owner].score += self.MOB_COST
 
                         self.removeObject(mob)
