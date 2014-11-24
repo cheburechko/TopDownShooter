@@ -13,6 +13,7 @@ class ServerSimulation():
     TIME_SCALE = 0.001
     MAX_MOBS = 16
     MOB_RESPAWN_PERIOD = 3000
+    PLAYER_RESPAWN_PERIOD = 3000
     PLAYER_COST = 5
     MOB_COST = 1
 
@@ -28,6 +29,7 @@ class ServerSimulation():
         self.world[Bullet.TYPE] = {}
         self.world[Mob.TYPE] = {}
         self.solidWorld = {}
+        self.respawnQueue = {}
         self.removed = []
 
         self.playerEntries = {}
@@ -86,6 +88,17 @@ class ServerSimulation():
 
             self.spawnMob()
 
+            respawned = []
+            for id in self.respawnQueue:
+                player ,t = self.respawnQueue[id]
+                if t <= self.timestamp:
+                    player.respawn()
+                    self.placeRandom(player)
+                    respawned += [id]
+
+            for id in respawned:
+                del self.respawnQueue[id]
+
             for player in self.world[Player.TYPE].values():
                 bullets = player.step(timestamp=self.timestamp)
                 for bullet in bullets:
@@ -108,6 +121,8 @@ class ServerSimulation():
                         self.removeObject(bullet)
 
             for player in self.world[Player.TYPE].values():
+                if not player.alive:
+                    continue
                 for bullet in player.collisions(
                         self.world[Bullet.TYPE].values()):
                     bullet.alive = False
@@ -118,9 +133,8 @@ class ServerSimulation():
                             self.playerEntries[bullet.owner].score += self.PLAYER_COST
 
                         self.playerEntries[player.id].deaths += 1
+                        self.respawnQueue[player.id] = (player, self.timestamp + self.PLAYER_RESPAWN_PERIOD)
 
-                        player.respawn()
-                        self.placeRandom(player)
                         break
 
             for mob in self.world[Mob.TYPE].values():

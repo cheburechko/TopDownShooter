@@ -41,8 +41,8 @@ class Player(GameObject):
     HEALTH = 5
     FIRE_PERIOD = 125
     FIRE_DIST = 1
-    STATE_FMT = "Ifffff"
-    STATE_SIZE = 25
+    STATE_FMT = "IfffffI"
+    STATE_SIZE = 29
 
     def __init__(self, position, angle, area, solids, objId=None):
         GameObject.__init__(self, position, angle, self.SIZE, self.TYPE, objId,
@@ -58,7 +58,7 @@ class Player(GameObject):
 
     def getState(self):
         state = chr(self.type) + struct.pack(self.STATE_FMT, self.id,
-                self.x, self.y, self.speedx, self.speedy, self.angle)
+                self.x, self.y, self.speedx, self.speedy, self.angle, self.health)
         return state
 
     def setState(self, state):
@@ -67,6 +67,7 @@ class Player(GameObject):
         self.speedx = state[4]
         self.speedy = state[5]
         self.angle = state[6]
+        self.health = state[7]
 
     @classmethod
     def fromState(cls, state):
@@ -75,6 +76,9 @@ class Player(GameObject):
         return obj
 
     def addInput(self, msg):
+        if self.health <= 0:
+            return
+
         if self.currentMsg is not None:
             if msg.timestamp < self.currentMsg.timestamp:
                 return
@@ -83,6 +87,9 @@ class Player(GameObject):
         self.msgs.sort(key=lambda x: x[0])
 
     def step(self, controlled=True, delta=0, timestamp=0, real=True):
+        if self.health <= 0:
+            return []
+
         result = []
         if controlled:
 
@@ -145,7 +152,9 @@ class Player(GameObject):
     def hit(self, damage):
         self.health -= damage
         if self.health <= 0:
+            self.health = 0
             self.alive = False
+            self.msgs = []
             return True
         return False
 
@@ -161,8 +170,8 @@ class Mob(GameObject):
     HEALTH = 3
     FIRE_PERIOD = 1000
     FIRE_DIST = 1
-    STATE_FMT = "IffI"
-    STATE_SIZE = 17
+    STATE_FMT = "IffII"
+    STATE_SIZE = 21
 
     def __init__(self, position, angle, area, solids, objId=None):
         GameObject.__init__(self, position, angle, self.SIZE, self.TYPE, objId,
@@ -176,7 +185,7 @@ class Mob(GameObject):
         if t is None:
             t = 2**32 - 1
         state = chr(self.type) + struct.pack(self.STATE_FMT, self.id,
-                self.x, self.y, t)
+                self.x, self.y, t, self.health)
         return state
 
     def setState(self, state):
@@ -185,6 +194,7 @@ class Mob(GameObject):
         self.target = state[4]
         if self.target == 2**32 - 1:
             self.target = None
+        self.health = state[5]
 
     @classmethod
     def fromState(cls, state):
@@ -198,7 +208,7 @@ class Mob(GameObject):
 
         if self.target is None:
             self.target = players.keys()[int(random.random() * len(players.keys()))]
-        if self.target not in players or not players[self.target].alive:
+        if self.target not in players or players[self.target].health <= 0:
             self.target = None
             return None
 

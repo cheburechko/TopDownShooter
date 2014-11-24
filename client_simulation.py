@@ -14,14 +14,22 @@ class LocalSimulation():
     """
     BACKGROUND = (0, 128, 0)
     NICK_COLOR = (0, 0, 0)
-    NICK_OFFSET = 15;
+    NICK_OFFSET = 30
+    PLAYER_BAR_OFFSET = 20
     TIME_SCALE = 0.001
     FRAMES_PER_SECOND = 60
     SCREEN_AREA = (1024, 768)
     BOUNDS = (0, 1024, 0, 768)
+
     PLAYER_IMG = pygame.image.load("resources/Player.png")
     BULLET_IMG= pygame.image.load("resources/Bullet.png")
     MOB_IMG = pygame.image.load("resources/Mob.png")
+
+    BAR_HEIGHT = 5
+    MOB_BAR_LENGTH = 50
+    PLAYER_BAR_LENGTH = 30
+    RED = (255, 0, 0)
+    GREEN = (0, 255, 0)
 
     def __init__(self):
 
@@ -41,13 +49,38 @@ class LocalSimulation():
                       Mob.TYPE: self.mobs}
         self.solid_world = {}
         self.sprites = pygame.sprite.Group()
-
         self.playerID = None
-        self.playerEntries = {}
-        self.playerNicks = {}
 
+        #Metadata
+        self.playerEntries = {}
+
+        #GUI
+        self.playerNicks = {}
         self.scoreBoard = ScoreBoard(self.screen, self.playerEntries, self.drawBackground)
         self.showScore = False
+        self.healthBars = {}
+        self.mobBars = []
+        self.playerBars = []
+
+        #Prerender health bars
+        bar = pygame.Surface((self.MOB_BAR_LENGTH, self.BAR_HEIGHT))
+        bar.fill(self.RED)
+        for i in range(Mob.HEALTH):
+            b = bar.copy()
+            b.fill(self.GREEN, pygame.Rect(0, 0,
+                                           self.MOB_BAR_LENGTH * (i+1) / Mob.HEALTH ,
+                                           self.BAR_HEIGHT))
+            self.mobBars += [b]
+
+        bar = pygame.Surface((self.PLAYER_BAR_LENGTH, self.BAR_HEIGHT))
+        bar.fill(self.RED)
+        for i in range(Player.HEALTH+1):
+            b = bar.copy()
+            b.fill(self.GREEN, pygame.Rect(
+                0, 0,
+                self.PLAYER_BAR_LENGTH * i / Player.HEALTH,
+                self.BAR_HEIGHT))
+            self.playerBars += [b]
 
         self.renderLock = Lock()
 
@@ -74,6 +107,9 @@ class LocalSimulation():
             del self.mobs[ID]
         if obj.solid:
             del self.solid_world[ID]
+            if ID in self.healthBars:
+                self.drawBackground(self.screen, self.healthBars[ID])
+                del self.healthBars[ID]
     
         self.sprites.remove(obj.sprite)
     
@@ -83,12 +119,14 @@ class LocalSimulation():
         if obj.type == Player.TYPE:
             self.players[ID] = obj
             sprite = GameObjectSprite(obj, self.PLAYER_IMG)
+            self.healthBars[ID] = self.playerBars[0].get_rect()
         elif obj.type == Bullet.TYPE:
             self.bullets[ID] = obj
             sprite = GameObjectSprite(obj, self.BULLET_IMG)
         elif obj.type == Mob.TYPE:
             self.mobs[ID] = obj
             sprite = GameObjectSprite(obj, self.MOB_IMG)
+            self.healthBars[ID] = self.mobBars[0].get_rect()
         if obj.solid:
             self.solid_world[ID] = obj
     
@@ -113,18 +151,25 @@ class LocalSimulation():
         r = fps.get_rect()
         r.topleft = (0, 0)
         while self.alive:
-
-            self.drawBackground(self.screen, r)
-
-            self.scoreBoard.clear()
-            for id in self.playerNicks:
-                self.drawBackground(self.screen, self.playerNicks[id][1])
-
             delta = self.clock.tick(self.FRAMES_PER_SECOND)
             self.timestamp = pygame.time.get_ticks() + self.timestamp_offset
+            # Clear
+
+            # FPS
+            self.drawBackground(self.screen, r)
+            # Scoreboard
+            self.scoreBoard.clear()
+            # Player nicks
+            for id in self.playerNicks:
+                self.drawBackground(self.screen, self.playerNicks[id][1])
+            # Bars
+            for id in self.healthBars:
+                self.drawBackground(self.screen, self.healthBars[id])
+            #Sprites
+            self.sprites.clear(self.screen, self.drawBackground)
 
             self.renderLock.acquire()
-
+            # Extrapolation
             for id in self.players:
                 self.players[id].step(controlled=self.playerID==id,
                                       timestamp=self.timestamp, delta=delta, real=False)
@@ -135,19 +180,35 @@ class LocalSimulation():
             for id in self.bullets:
                 self.bullets[id].move(delta*self.TIME_SCALE)
 
-            self.sprites.clear(self.screen, self.drawBackground)
+            # Drawing
+
+            #Sprites
             self.sprites.update()
             self.sprites.draw(self.screen)
+            #Bars
+            for id in self.mobs:
+                if id in self.healthBars:
+                    self.healthBars[id].center = (self.mobs[id].x,
+                                                  self.mobs[id].y + Mob.SIZE)
+                    self.screen.blit(self.mobBars[self.mobs[id].health-1],
+                                     self.healthBars[id].topleft)
 
+            for id in self.players:
+                if id in self.healthBars:
+                    self.healthBars[id].center = (self.players[id].x,
+                                                  self.players[id].y + self.PLAYER_BAR_OFFSET)
+                    self.screen.blit(self.playerBars[self.players[id].health],
+                                     self.healthBars[id].topleft)
 
+            # Nicks
             for id in self.playerNicks:
                 self.playerNicks[id][1].center = (self.players[id].x,
                                                   self.players[id].y+self.NICK_OFFSET)
                 self.screen.blit(self.playerNicks[id][0], self.playerNicks[id][1].topleft)
-
+            #Scoreboard
             if self.showScore:
                 self.scoreBoard.draw()
-
+            #FPS
             self.screen.blit(fps, (0, 0))
 
             fps = self.playerFont.render(str(int(self.clock.get_fps())), True, (0,0,0))
