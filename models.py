@@ -136,7 +136,7 @@ class Player(GameObject):
             dist = self.size + self.FIRE_DIST + Bullet.SIZE
             bullet = Bullet((self.x + math.cos(self.angle) * dist,
                              self.y + math.sin(self.angle) * dist),
-                            self.angle, self)
+                            self.angle, owner=self)
             self.next_shot = timestamp + self.FIRE_PERIOD
             return bullet
 
@@ -210,7 +210,7 @@ class Mob(GameObject):
             dist = self.size + self.FIRE_DIST + Bullet.SIZE
             bullet = Bullet((self.x + math.cos(self.angle) * dist,
                              self.y + math.sin(self.angle) * dist),
-                            self.angle, self)
+                            self.angle, owner=self)
             return bullet
 
         return None

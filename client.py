@@ -34,6 +34,7 @@ class Client():
         while self.alive:
             udpMsg = self.udpq.get()
             if udpMsg.data == '':
+                print 'Server disconnected'
                 self.kill()
                 break
 

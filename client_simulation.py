@@ -3,6 +3,7 @@ from pygame.locals import *
 from messages import *
 import pygame
 from threading import Lock
+from gui import ScoreBoard
 
 pygame.font.init()
 
@@ -40,6 +41,9 @@ class LocalSimulation():
         self.sprites = pygame.sprite.Group()
         self.playerID = None
         self.playerEntries = {}
+
+        self.scoreBoard = ScoreBoard(self.screen, self.playerEntries, self.drawBackground)
+        self.showScore = False
 
         self.renderLock = Lock()
 
@@ -102,6 +106,8 @@ class LocalSimulation():
         r.topleft = (0, 0)
         while self.alive:
 
+            self.scoreBoard.clear()
+
             delta = self.clock.tick(self.FRAMES_PER_SECOND)
             self.timestamp = pygame.time.get_ticks() + self.timestamp_offset
 
@@ -128,6 +134,9 @@ class LocalSimulation():
             fps = self.playerFont.render(str(int(self.clock.get_fps())), True, (0,0,0))
             r = fps.get_rect()
             r.topleft = (0, 0)
+
+            if self.showScore:
+                self.scoreBoard.draw()
 
             self.renderLock.release()
 
@@ -193,6 +202,8 @@ class InputControl():
                         self.client.shutdown()
                         self.alive = False
                         break
+                    elif event.key == K_TAB:
+                        self.sim.showScore = down
 
             msg = InputMessage()
             if self.k_right: msg.setButton(InputMessage.RIGHT)

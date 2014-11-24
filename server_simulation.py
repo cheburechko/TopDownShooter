@@ -76,6 +76,7 @@ class ServerSimulation():
 
     def removePlayer(self, id):
         self.removeObject(self.world[Player.TYPE][id])
+        del self.playerEntries[id]
 
     def simulate(self):
         while self.alive:
@@ -128,7 +129,9 @@ class ServerSimulation():
                     self.removeObject(bullet)
                     if mob.hit(Bullet.DAMAGE):
 
+                        print bullet.owner
                         if bullet.owner in self.playerEntries:
+                            print 'Hit', self.playerEntries[bullet.owner].toString()
                             self.playerEntries[bullet.owner].score += self.MOB_COST
 
                         self.removeObject(mob)

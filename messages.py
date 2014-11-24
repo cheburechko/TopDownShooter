@@ -231,7 +231,7 @@ class PingMessage(Message):
     def fromString(cls, data):
         msg = PingMessage()
         msg.getHead(data)
-        msg.data = data
+        msg.data = data[:cls.HEADER]
         return msg
 
 class MetaMessage(Message):
@@ -256,14 +256,16 @@ class MetaMessage(Message):
 
     @classmethod
     def fromString(cls, data):
-        msg = PingMessage()
+        msg = MetaMessage()
         msg.getHead(data)
         parts = struct.unpack(cls.FORMAT, data[cls.HEADER:cls.HEADER+cls.FORMAT_SIZE])
         msg.entry = PlayerEntry(
             parts[0],
             data[cls.HEADER+cls.FORMAT_SIZE:cls.HEADER+cls.FORMAT_SIZE+parts[3]],
-            parts[1], parts[2])
-        msg.data = data
+            score=parts[1], deaths=parts[2])
+        print msg.entry.toString()
+        print parts
+        msg.data = data[:cls.HEADER+cls.FORMAT_SIZE+parts[3]]
         return msg
 
 Message.registerType(InputMessage)
