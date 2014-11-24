@@ -1,4 +1,4 @@
-import Queue, thread
+import Queue, thread, sys
 from client_simulation import LocalSimulation, InputControl
 from udp import UDPClient
 from messages import *
@@ -46,8 +46,17 @@ class Client():
 
             self.sim.processInput(msg)
 
-client = Client(('localhost', 7000), 'any')
-try:
-    client.serve()
-except KeyboardInterrupt:
-    client.kill()
+if __name__ == '__main__':
+    if len(sys.argv) < 4:
+        print 'Usage: client.py ip port nickname'
+        sys.exit(1)
+
+    ip = sys.argv[1]
+    port = int(sys.argv[2])
+    nickname = sys.argv[3]
+
+    client = Client((ip, port), nickname)
+    try:
+        client.serve()
+    except KeyboardInterrupt:
+        client.kill()

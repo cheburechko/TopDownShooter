@@ -1,5 +1,5 @@
 from udp import UDPServer
-import Queue, thread
+import Queue, thread, sys
 from server_simulation import ServerSimulation
 from messages import *
 import pygame
@@ -59,8 +59,18 @@ class Server():
                 if (udpMsg.connID in self.players):
                     self.sim.receiveInput(self.players[udpMsg.connID], msg)
 
-server = Server(('localhost', 7000))
-try:
-    server.broadcastState()
-except KeyboardInterrupt:
-    server.kill()
+if __name__ == '__main__':
+    if len(sys.argv) < 3:
+        print 'Usage: client.py ip port'
+        sys.exit(1)
+
+    ip = sys.argv[1]
+    port = int(sys.argv[2])
+    if ip == 'any':
+        ip = ''
+
+    server = Server((ip, port))
+    try:
+        server.broadcastState()
+    except KeyboardInterrupt:
+        server.kill()
