@@ -3,7 +3,7 @@ from pygame.locals import *
 from messages import *
 import pygame
 from threading import Lock
-from gui import ScoreBoard
+from gui import ScoreBoard, InputBox
 
 pygame.font.init()
 
@@ -61,6 +61,8 @@ class LocalSimulation():
         self.healthBars = {}
         self.mobBars = []
         self.playerBars = []
+        self.textInput = InputBox(800, 20, 'Say: ', (100, 600))
+        self.showInput = False
 
         #Prerender health bars
         bar = pygame.Surface((self.MOB_BAR_LENGTH, self.BAR_HEIGHT))
@@ -157,6 +159,8 @@ class LocalSimulation():
 
             # FPS
             self.drawBackground(self.screen, r)
+            # Input
+            self.textInput.clear(self.screen, self.drawBackground)
             # Scoreboard
             self.scoreBoard.clear()
             # Player nicks
@@ -208,6 +212,9 @@ class LocalSimulation():
             #Scoreboard
             if self.showScore:
                 self.scoreBoard.draw()
+            # Input
+            if self.showInput:
+                self.textInput.draw(self.screen)
             #FPS
             self.screen.blit(fps, (0, 0))
 
@@ -263,6 +270,7 @@ class InputControl():
         self.clock = pygame.time.Clock()
         self.client = client
         self.sim = sim
+        self.chatting = False
 
     def processInputForever(self):
 
@@ -270,23 +278,35 @@ class InputControl():
             delay = self.clock.tick(self.FRAMES_PER_SECOND)
             timestamp = self.sim.timestamp
 
-            for event in pygame.event.get():
-                if event.type == MOUSEBUTTONDOWN:
-                    self.firing = True
-                elif event.type == MOUSEBUTTONUP:
-                    self.firing = False
-                elif event.type == KEYDOWN or event.type == KEYUP:
-                    down = event.type == KEYDOWN
-                    if event.key == K_d: self.k_right = down
-                    elif event.key == K_a: self.k_left = down
-                    elif event.key == K_w: self.k_up = down
-                    elif event.key == K_s: self.k_down = down
-                    elif event.key == K_ESCAPE: 
-                        self.client.shutdown()
-                        self.alive = False
-                        break
-                    elif event.key == K_TAB:
-                        self.sim.showScore = down
+            if self.chatting:
+                ans = self.sim.textInput.update(pygame.event.get())
+                if ans is not None:
+                    self.chatting = False
+                    self.sim.showInput = False
+                    msg = ChatMessage(msg=ans, id=self.sim.playerID)
+                    msg.timestamp = timestamp
+                    self.client.send(msg.toString())
+            else:
+                for event in pygame.event.get():
+                    if event.type == MOUSEBUTTONDOWN:
+                        self.firing = True
+                    elif event.type == MOUSEBUTTONUP:
+                        self.firing = False
+                    elif event.type == KEYDOWN or event.type == KEYUP:
+                        down = event.type == KEYDOWN
+                        if event.key == K_d: self.k_right = down
+                        elif event.key == K_a: self.k_left = down
+                        elif event.key == K_w: self.k_up = down
+                        elif event.key == K_s: self.k_down = down
+                        elif event.key == K_ESCAPE:
+                            self.client.shutdown()
+                            self.alive = False
+                            break
+                        elif event.key == K_TAB:
+                            self.sim.showScore = down
+                        elif event.key == K_RETURN:
+                            self.chatting = down
+                            self.sim.showInput = down
 
             msg = InputMessage()
             if self.k_right: msg.setButton(InputMessage.RIGHT)

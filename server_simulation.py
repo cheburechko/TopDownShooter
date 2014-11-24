@@ -11,7 +11,7 @@ class ServerSimulation():
     SCREEN_AREA = (1024, 768)
     BOUNDS = (0, 1024, 0, 768)
     TIME_SCALE = 0.001
-    MAX_MOBS = 0
+    MAX_MOBS = 16
     MOB_RESPAWN_PERIOD = 3000
     PLAYER_RESPAWN_PERIOD = 3000
     PLAYER_COST = 5

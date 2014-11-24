@@ -100,8 +100,8 @@ class ChatMessage(Message):
 
     def toString(self):
         self.data = Message.toString(self) + \
-                    struct.pack(self.FORMAT, self.id, len(self.msg)) +\
-                    self.msg
+                    struct.pack(self.FORMAT, self.id, len(str(self.msg))) +\
+                    str(self.msg)
         return self.data
 
     @classmethod
