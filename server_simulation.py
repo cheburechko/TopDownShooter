@@ -1,6 +1,7 @@
 from models import *
 import pygame, itertools
 from messages import *
+from metadata import PlayerEntry
 class ServerSimulation():
     """
     This class simulates all of the game events
@@ -12,6 +13,8 @@ class ServerSimulation():
     TIME_SCALE = 0.001
     MAX_MOBS = 16
     MOB_RESPAWN_PERIOD = 3000
+    PLAYER_COST = 5
+    MOB_COST = 1
 
     def __init__(self):
         self.alive = True
@@ -26,6 +29,8 @@ class ServerSimulation():
         self.world[Mob.TYPE] = {}
         self.solidWorld = {}
         self.removed = []
+
+        self.playerEntries = {}
 
         self.verbose = False
 
@@ -55,6 +60,7 @@ class ServerSimulation():
                 self.BOUNDS, self.solidWorld)
         self.placeRandom(player)
         self.addObject(player)
+        self.playerEntries[player.id] = PlayerEntry(player.id, msg.name)
         return player.id
 
     def spawnMob(self):
@@ -105,6 +111,12 @@ class ServerSimulation():
                     bullet.alive = False
                     self.removeObject(bullet)
                     if player.hit(Bullet.DAMAGE):
+
+                        if bullet.owner in self.playerEntries:
+                            self.playerEntries[bullet.owner].score += self.PLAYER_COST
+
+                        self.playerEntries[player.id].deaths += 1
+
                         player.respawn()
                         self.placeRandom(player)
                         break
@@ -114,7 +126,11 @@ class ServerSimulation():
                         self.world[Bullet.TYPE].values()):
                     bullet.alive = False
                     self.removeObject(bullet)
-                    if (mob.hit(Bullet.DAMAGE)):
+                    if mob.hit(Bullet.DAMAGE):
+
+                        if bullet.owner in self.playerEntries:
+                            self.playerEntries[bullet.owner].score += self.MOB_COST
+
                         self.removeObject(mob)
                         break
 
@@ -128,4 +144,10 @@ class ServerSimulation():
             state.add(RemoveMessage(obj.type, obj.id))
         self.removed = []
         return state
+
+    def getMeta(self):
+        meta = ListMessage()
+        for entry in self.playerEntries:
+            meta.add(MetaMessage(self.playerEntries[entry]))
+        return meta
 

@@ -7,6 +7,7 @@ import pygame
 class Server():
 
     MSGS_PER_SECOND = 20
+    META_PERIOD = 1000
 
     def __init__(self, address):
         self.msgQ = Queue.Queue()
@@ -31,9 +32,13 @@ class Server():
 
     def broadcastState(self):
         clock = pygame.time.Clock()
+        timer = 0
         while self.alive:
-            clock.tick(self.MSGS_PER_SECOND)
+            timer += clock.tick(self.MSGS_PER_SECOND)
             self.server.sendToAll(self.sim.getWorldState().toString())
+            if timer > self.META_PERIOD:
+                timer -= self.META_PERIOD
+                self.server.sendToAll(self.sim.getMeta().toString())
 
     def serve(self):
         while self.alive:

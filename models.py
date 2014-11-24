@@ -2,8 +2,6 @@ import math, pygame, random, struct
 from messages import InputMessage
 from game_object import GameObject
 
-
-
 class Bullet(GameObject):
     SIZE = 5
     TYPE = 0

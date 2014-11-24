@@ -39,6 +39,7 @@ class LocalSimulation():
         self.solid_world = {}
         self.sprites = pygame.sprite.Group()
         self.playerID = None
+        self.playerEntries = {}
 
         self.renderLock = Lock()
 
@@ -152,6 +153,8 @@ class LocalSimulation():
             elif msg.type == Message.REMOVE:
                 if msg.id in self.world[msg.objType]:
                     self.removeObject(self.world[msg.objType][msg.id])
+            elif msg.type == Message.META:
+                self.playerEntries[msg.entry.id] = msg.entry
 
         self.renderLock.release()
 

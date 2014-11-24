@@ -1,5 +1,7 @@
 import struct
 from game_object import GameObject
+from metadata import PlayerEntry
+
 
 class Message():
     INPUT = 0
@@ -9,6 +11,7 @@ class Message():
     ENTITY = 4
     PING = 5
     REMOVE = 6
+    META = 7
     TYPE = None
 
     HEADER = 5
@@ -222,12 +225,46 @@ class PingMessage(Message):
 
     def toString(self):
         self.data = Message.toString(self)
+        return self.data
 
     @classmethod
     def fromString(cls, data):
         msg = PingMessage()
         msg.getHead(data)
         msg.data = data
+        return msg
+
+class MetaMessage(Message):
+
+    TYPE = chr(Message.META)
+    FORMAT = "IIII"
+    FORMAT_SIZE = 16
+
+    def __init__(self, entry=None):
+        Message.__init__(self, Message.META)
+        self.entry = entry
+
+    def toString(self):
+        self.data = Message.toString(self) + struct.pack(
+            self.FORMAT,
+            self.entry.id,
+            self.entry.score,
+            self.entry.deaths,
+            len(self.entry.name)
+            ) + self.entry.name
+        return self.data
+
+    @classmethod
+    def fromString(cls, data):
+        msg = PingMessage()
+        msg.getHead(data)
+        parts = struct.unpack(cls.FORMAT, data[cls.HEADER:cls.HEADER+cls.FORMAT_SIZE])
+        msg.entry = PlayerEntry(
+            parts[0],
+            data[cls.HEADER+cls.FORMAT_SIZE:cls.HEADER+cls.FORMAT_SIZE+parts[3]],
+            parts[1], parts[2])
+        msg.data = data
+        return msg
 
 Message.registerType(InputMessage)
 Message.registerType(ChatMessage)
@@ -236,3 +273,4 @@ Message.registerType(ConnectMessage)
 Message.registerType(EntityMessage)
 Message.registerType(PingMessage)
 Message.registerType(RemoveMessage)
+Message.registerType(MetaMessage)
