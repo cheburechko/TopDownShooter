@@ -99,9 +99,10 @@ class ChatMessage(Message):
         self.id = id
 
     def toString(self):
+        data = self.msg.encode('utf-8')
         self.data = Message.toString(self) + \
-                    struct.pack(self.FORMAT, self.id, len(str(self.msg))) +\
-                    str(self.msg)
+                    struct.pack(self.FORMAT, self.id, len(data)) +\
+                    data
         return self.data
 
     @classmethod
@@ -113,7 +114,7 @@ class ChatMessage(Message):
         msg.id = parts[0]
         size = parts[1]
         msg.data = data[:cls.HEADER+cls.FORMAT_SIZE+size]
-        msg.msg = data[cls.HEADER+cls.FORMAT_SIZE:cls.HEADER+cls.FORMAT_SIZE+size]
+        msg.msg = data[cls.HEADER+cls.FORMAT_SIZE:cls.HEADER+cls.FORMAT_SIZE+size].decode('utf-8')
         return msg
 
 class ListMessage(Message):

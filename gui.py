@@ -96,6 +96,7 @@ class InputBox():
     def clear(self, screen, callback):
         if self.active:
             callback(screen, self.borderRect)
+            self.active = False
 
     def draw(self, screen):
         self.active = True
@@ -120,3 +121,49 @@ class InputBox():
                 self.text += event.unicode
         #print self.text
         return None
+
+class ChatMessages():
+    TEXT_COLOR = (0, 0, 0)
+    MSG_PERIOD = 15000
+
+    def __init__(self, length, font, lines, pos):
+        self.length = length
+        self.font = pygame.font.SysFont("None", font)
+        self.height = font
+        char = self.font.render('_', True, self.TEXT_COLOR)
+        self.chars = self.length / char.get_rect().width
+        self.pos = pos
+        self.lineCount = lines
+        self.lines = []
+        self.rect = pygame.Rect(pos, (length, font*lines))
+        self.active = False
+
+    def clear(self, screen, callback):
+        if self.active:
+            self.active = False
+            callback(screen, self.rect)
+
+    def draw(self, timestamp, msgs, entries, screen):
+        # update our lines
+        for msg in msgs:
+            nickname = entries[msg.id].name
+            text = nickname + ': ' + msg.msg
+            for i in range((len(text) - 1) / self.chars + 1):
+                self.lines += [(self.font.render(
+                    text[i*self.chars:(i+1)*self.chars],
+                    True, self.TEXT_COLOR), timestamp + self.MSG_PERIOD)]
+
+        # Clearing extra and expired lines
+        self.lines = self.lines[-self.lineCount:]
+        expired = []
+        for i in range(len(self.lines)):
+            if self.lines[i][1] <= timestamp:
+                expired = [i] + expired
+
+        for i in expired:
+            del self.lines[i]
+
+        # Draw
+        for i in range(len(self.lines)):
+            self.active = True
+            screen.blit(self.lines[i][0], (self.rect.left, self.rect.top + self.height*i))

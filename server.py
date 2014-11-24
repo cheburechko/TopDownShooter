@@ -55,7 +55,6 @@ class Server():
                                  udpMsg.connID)
             elif msg.type == Message.CHAT:
                 self.server.sendToAll(udpMsg.data)
-                print msg.msg
             elif msg.type == Message.INPUT:
                 if (udpMsg.connID in self.players):
                     self.sim.receiveInput(self.players[udpMsg.connID], msg)

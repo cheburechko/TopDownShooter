@@ -3,7 +3,7 @@ from pygame.locals import *
 from messages import *
 import pygame
 from threading import Lock
-from gui import ScoreBoard, InputBox
+from gui import ScoreBoard, InputBox, ChatMessages
 
 pygame.font.init()
 
@@ -62,6 +62,7 @@ class LocalSimulation():
         self.mobBars = []
         self.playerBars = []
         self.textInput = InputBox(800, 20, 'Say: ', (100, 600))
+        self.chat = ChatMessages(800, 20, 5, (100, 620))
         self.showInput = False
 
         #Prerender health bars
@@ -163,6 +164,8 @@ class LocalSimulation():
             self.textInput.clear(self.screen, self.drawBackground)
             # Scoreboard
             self.scoreBoard.clear()
+            # Chat
+            self.chat.clear(self.screen, self.drawBackground)
             # Player nicks
             for id in self.playerNicks:
                 self.drawBackground(self.screen, self.playerNicks[id][1])
@@ -209,6 +212,9 @@ class LocalSimulation():
                 self.playerNicks[id][1].center = (self.players[id].x,
                                                   self.players[id].y+self.NICK_OFFSET)
                 self.screen.blit(self.playerNicks[id][0], self.playerNicks[id][1].topleft)
+            #Chat
+            self.chat.draw(self.timestamp, self.messages, self.playerEntries, self.screen)
+            self.messages = []
             #Scoreboard
             if self.showScore:
                 self.scoreBoard.draw()
