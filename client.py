@@ -39,6 +39,9 @@ class Client():
                 break
 
             msg = Message.getMessage(udpMsg.data)
+            if msg.type == Message.PING:
+                self.client.send(PingMessage().toString())
+                continue
             # update offsets
             self.sim.timestamp_offset = msg.timestamp - pygame.time.get_ticks()
             #print "Offset:", self.ic.timestamp_offset

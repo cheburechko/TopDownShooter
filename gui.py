@@ -9,7 +9,8 @@ class ScoreBoard():
     NAME_WIDTH = 500
     SCORE_WIDTH = 150
     DEATHS_WIDTH = 150
-    WINDOW_WIDTH = NAME_WIDTH + SCORE_WIDTH + DEATHS_WIDTH
+    LAG_WIDTH = 150
+    WINDOW_WIDTH = NAME_WIDTH + SCORE_WIDTH + DEATHS_WIDTH + LAG_WIDTH
     TOP_OFFSET = 50
     BOARD_COLOR = (0, 0, 0)
     TEXT_COLOR = (255, 255, 255)
@@ -37,6 +38,10 @@ class ScoreBoard():
         self.titleDeathsTopLeft = (
             self.titleScoreTopLeft[0] + self.SCORE_WIDTH, self.boardTopLeft[1]
         )
+        self.titleLag = self.font.render("Lag", True, self.TEXT_COLOR)
+        self.titleLagTopLeft = (
+            self.titleDeathsTopLeft[0] + self.SCORE_WIDTH, self.boardTopLeft[1]
+        )
 
     def clear(self):
         if self.active:
@@ -51,6 +56,7 @@ class ScoreBoard():
         self.screen.blit(self.titleName, self.titleNameTopLeft)
         self.screen.blit(self.titleScore, self.titleScoreTopLeft)
         self.screen.blit(self.titleDeaths, self.titleDeathsTopLeft)
+        self.screen.blit(self.titleLag, self.titleLagTopLeft)
         entries = self.entries.values()
 
         for i in range(len(self.entries)):
@@ -66,6 +72,11 @@ class ScoreBoard():
             text = self.font.render(str(entries[i].deaths), True, self.TEXT_COLOR)
             self.screen.blit(text,
                 (self.titleDeathsTopLeft[0],
+                 self.boardTopLeft[1]+self.ENTRY_HEIGHT*(i+1)))
+
+            text = self.font.render(str(entries[i].latency), True, self.TEXT_COLOR)
+            self.screen.blit(text,
+                (self.titleLagTopLeft[0],
                  self.boardTopLeft[1]+self.ENTRY_HEIGHT*(i+1)))
 
 

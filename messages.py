@@ -238,8 +238,8 @@ class PingMessage(Message):
 class MetaMessage(Message):
 
     TYPE = chr(Message.META)
-    FORMAT = "IIII"
-    FORMAT_SIZE = 16
+    FORMAT = "IIIII"
+    FORMAT_SIZE = 20
 
     def __init__(self, entry=None):
         Message.__init__(self, Message.META)
@@ -251,6 +251,7 @@ class MetaMessage(Message):
             self.entry.id,
             self.entry.score,
             self.entry.deaths,
+            self.entry.latency,
             len(self.entry.name)
             ) + self.entry.name
         return self.data
@@ -262,9 +263,9 @@ class MetaMessage(Message):
         parts = struct.unpack(cls.FORMAT, data[cls.HEADER:cls.HEADER+cls.FORMAT_SIZE])
         msg.entry = PlayerEntry(
             parts[0],
-            data[cls.HEADER+cls.FORMAT_SIZE:cls.HEADER+cls.FORMAT_SIZE+parts[3]],
-            score=parts[1], deaths=parts[2])
-        msg.data = data[:cls.HEADER+cls.FORMAT_SIZE+parts[3]]
+            data[cls.HEADER+cls.FORMAT_SIZE:cls.HEADER+cls.FORMAT_SIZE+parts[4]],
+            score=parts[1], deaths=parts[2], latency=parts[3])
+        msg.data = data[:cls.HEADER+cls.FORMAT_SIZE+parts[4]]
         return msg
 
 Message.registerType(InputMessage)

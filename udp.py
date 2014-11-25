@@ -184,7 +184,7 @@ class UDPServer(SocketServer.ThreadingMixIn, SocketServer.UDPServer):
             self.disconnect(id=connID)
 
     def sendToAll(self, data):
-        for connection in self.connections:
+        for connection in self.connections.keys():
             self.send(data, connection)
 
     def disconnect(self, packet=None, id=None):

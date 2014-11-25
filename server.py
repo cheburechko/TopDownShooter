@@ -22,6 +22,7 @@ class Server():
 
         self.players = {}
         self.alive=True
+        self.lastPing = 0
 
         thread.start_new_thread(self.serve, ())
 
@@ -39,6 +40,10 @@ class Server():
             if timer > self.META_PERIOD:
                 timer -= self.META_PERIOD
                 self.server.sendToAll(self.sim.getMeta().toString())
+                msg = PingMessage()
+                self.lastPing = pygame.time.get_ticks()
+                msg.timestamp = self.lastPing
+                self.server.sendToAll(msg.toString())
 
     def serve(self):
         while self.alive:
@@ -58,6 +63,10 @@ class Server():
             elif msg.type == Message.INPUT:
                 if (udpMsg.connID in self.players):
                     self.sim.receiveInput(self.players[udpMsg.connID], msg)
+            elif msg.type == Message.PING:
+                if (udpMsg.connID in self.players):
+                    self.sim.updateLatency(self.players[udpMsg.connID],
+                                           pygame.time.get_ticks() - self.lastPing)
 
 if __name__ == '__main__':
     if len(sys.argv) < 3:

@@ -77,6 +77,9 @@ class ServerSimulation():
     def receiveInput(self, id, msg):
         self.world[Player.TYPE][id].addInput(msg)
 
+    def updateLatency(self, id, lag):
+        self.playerEntries[id].latency = lag
+
     def removePlayer(self, id):
         self.removeObject(self.world[Player.TYPE][id])
         del self.playerEntries[id]
