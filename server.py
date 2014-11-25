@@ -66,7 +66,7 @@ class Server():
             elif msg.type == Message.PING:
                 if (udpMsg.connID in self.players):
                     self.sim.updateLatency(self.players[udpMsg.connID],
-                                           pygame.time.get_ticks() - self.lastPing)
+                                           (pygame.time.get_ticks() - self.lastPing)/2)
 
 if __name__ == '__main__':
     if len(sys.argv) < 3:

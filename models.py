@@ -14,9 +14,16 @@ class Bullet(GameObject):
         GameObject.__init__(self, position, angle, self.SIZE, self.TYPE, objId, solid=False)
         if owner is not None:
             self.owner = owner.id
+        self.lastState = (0,(self.type, self.id, self.x, self.y, self.angle))
+
 
     def move(self, delta):
         GameObject.move(self, scale=delta*self.speed, angle=self.angle)
+
+    def interpolateStates(self, d, state):
+        self.x = self.interVar(d, state, 2)
+        self.y = self.interVar(d, state, 3)
+        #self.angle = self.interVar(d, state, 4)
 
     def getState(self):
         state = chr(self.type) + struct.pack(self.STATE_FMT, self.id,
@@ -41,8 +48,8 @@ class Player(GameObject):
     HEALTH = 5
     FIRE_PERIOD = 125
     FIRE_DIST = 1
-    STATE_FMT = "IfffffI"
-    STATE_SIZE = 29
+    STATE_FMT = "IfffI"
+    STATE_SIZE = 21
 
     def __init__(self, position, angle, area, solids, objId=None):
         GameObject.__init__(self, position, angle, self.SIZE, self.TYPE, objId,
@@ -55,19 +62,23 @@ class Player(GameObject):
         self.msgs = []
         self.currentMsg = None
         self.lastTimestamp = 0
+        self.lastState = (0,(self.type, self.id, self.x, self.y, self.angle, self.health))
 
     def getState(self):
         state = chr(self.type) + struct.pack(self.STATE_FMT, self.id,
-                self.x, self.y, self.speedx, self.speedy, self.angle, self.health)
+                self.x, self.y, self.angle, self.health)
         return state
+
+    def interpolateStates(self, d, state):
+        self.x = self.interVar(d, state, 2)
+        self.y = self.interVar(d, state, 3)
+        #self.angle = self.interVar(d, state, 4)
 
     def setState(self, state):
         self.x = state[2]
         self.y = state[3]
-        self.speedx = state[4]
-        self.speedy = state[5]
-        self.angle = state[6]
-        self.health = state[7]
+        self.angle = state[4]
+        self.health = state[5]
 
     @classmethod
     def fromState(cls, state):
@@ -170,7 +181,7 @@ class Mob(GameObject):
     HEALTH = 3
     FIRE_PERIOD = 1000
     FIRE_DIST = 1
-    STATE_FMT = "IffII"
+    STATE_FMT = "IfffI"
     STATE_SIZE = 21
 
     def __init__(self, position, angle, area, solids, objId=None):
@@ -179,21 +190,22 @@ class Mob(GameObject):
         self.health = self.HEALTH
         self.next_shot = 0
         self.target = None
+        self.lastState = (0,(self.type, self.id, self.x, self.y, self.angle, self.health))
 
     def getState(self):
-        t = self.target
-        if t is None:
-            t = 2**32 - 1
         state = chr(self.type) + struct.pack(self.STATE_FMT, self.id,
-                self.x, self.y, t, self.health)
+                self.x, self.y, self.angle, self.health)
         return state
+
+    def interpolateStates(self, d, state):
+        self.x = self.interVar(d, state, 2)
+        self.y = self.interVar(d, state, 3)
+        #self.angle = self.interVar(d, state, 4)
 
     def setState(self, state):
         self.x = state[2]
         self.y = state[3]
-        self.target = state[4]
-        if self.target == 2**32 - 1:
-            self.target = None
+        self.angle = state[4]
         self.health = state[5]
 
     @classmethod

@@ -25,6 +25,9 @@ class GameObject():
         # Movement limiters
         self.area = area
         self.solids = solids
+        # Interpolation vars
+        self.states = []
+        self.lastState = (0, )
 
         if objId is None:
             self.id = GameObject.getID()
@@ -80,6 +83,26 @@ class GameObject():
             self.angle = math.atan2(vector[1] - self.y, vector[0] - self.x)
         elif angle is not None:
             self.angle = angle
+
+    def putState(self, state, t):
+        self.states += [(t, state)]
+        self.states.sort(key=lambda x: x[0])
+
+    def interVar(self, d, state, pos):
+        return self.lastState[1][pos] * (1-d) + state[1][pos]*d
+
+    def interpolate(self, t):
+        x = 0
+        for i in range(len(self.states)):
+            if self.states[i][0] < t:
+                self.setState(self.states[i][1])
+                self.lastState = self.states[i]
+                x = i
+            else:
+                d = (t - self.lastState[0]) * 1. / (self.states[i][0] - self.lastState[0])
+                self.interpolateStates(d, self.states[i])
+                break
+        self.states = self.states[x:]
 
     @classmethod
     def getState(cls, self):

@@ -20,6 +20,7 @@ class LocalSimulation():
     FRAMES_PER_SECOND = 60
     SCREEN_AREA = (1024, 768)
     BOUNDS = (0, 1024, 0, 768)
+    INTERPOLATION_TIME = 100
 
     PLAYER_IMG = pygame.image.load("resources/Player.png")
     BULLET_IMG= pygame.image.load("resources/Bullet.png")
@@ -38,6 +39,7 @@ class LocalSimulation():
         self.screen = pygame.display.set_mode(self.SCREEN_AREA, DOUBLEBUF)
         self.screen.fill(self.BACKGROUND)
         self.clock = pygame.time.Clock()
+        self.clock.tick(1000 / self.INTERPOLATION_TIME)
         self.timestamp = pygame.time.get_ticks()
         self.timestamp_offset = 0
 
@@ -50,6 +52,10 @@ class LocalSimulation():
         self.solid_world = {}
         self.sprites = pygame.sprite.Group()
         self.playerID = None
+
+        # Delayed stuff
+        self.createQueue = {}
+        self.removeQueue = []
 
         #Metadata
         self.playerEntries = {}
@@ -155,7 +161,8 @@ class LocalSimulation():
         r.topleft = (0, 0)
         while self.alive:
             delta = self.clock.tick(self.FRAMES_PER_SECOND)
-            self.timestamp = pygame.time.get_ticks() + self.timestamp_offset
+            self.timestamp = pygame.time.get_ticks() + self.timestamp_offset - \
+                             self.INTERPOLATION_TIME
             # Clear
 
             # FPS
@@ -176,16 +183,36 @@ class LocalSimulation():
             self.sprites.clear(self.screen, self.drawBackground)
 
             self.renderLock.acquire()
-            # Extrapolation
+
+            # Add/remove objects
+            created = []
+            for key in self.createQueue:
+                if self.createQueue[key][0] < self.timestamp:
+                    self.addObject(self.createQueue[key][1])
+                    created += [key]
+            for key in created:
+                del self.createQueue[key]
+
+            removed = []
+            for i in range(len(self.removeQueue)):
+                if self.removeQueue[i][0] < self.timestamp:
+                    if (self.removeQueue[i][2] in self.world[self.removeQueue[i][1]]):
+                        self.removeObject(
+                            self.world[self.removeQueue[i][1]][self.removeQueue[i][2]])
+                    removed = [i] + removed
+
+            for i in removed:
+                del self.removeQueue[i]
+
+            # Interpolation
             for id in self.players:
-                self.players[id].step(controlled=self.playerID==id,
-                                      timestamp=self.timestamp, delta=delta, real=False)
+                self.players[id].interpolate(self.timestamp)
 
             for id in self.mobs:
-                self.mobs[id].step(self.players, delta*self.TIME_SCALE, self.timestamp)
+                self.mobs[id].interpolate(self.timestamp)
 
             for id in self.bullets:
-                self.bullets[id].move(delta*self.TIME_SCALE)
+                self.bullets[id].interpolate(self.timestamp)
 
             # Drawing
 
@@ -209,9 +236,10 @@ class LocalSimulation():
 
             # Nicks
             for id in self.playerNicks:
-                self.playerNicks[id][1].center = (self.players[id].x,
+                if id in self.players:
+                    self.playerNicks[id][1].center = (self.players[id].x,
                                                   self.players[id].y+self.NICK_OFFSET)
-                self.screen.blit(self.playerNicks[id][0], self.playerNicks[id][1].topleft)
+                    self.screen.blit(self.playerNicks[id][0], self.playerNicks[id][1].topleft)
             #Chat
             self.chat.draw(self.timestamp, self.messages, self.playerEntries, self.screen)
             self.messages = []
@@ -240,19 +268,23 @@ class LocalSimulation():
             if msg.type == Message.ENTITY:
                 state = GameObject.unpackState(msg.state)
                 if state[1] in self.world[state[0]]:
-                    self.world[state[0]][state[1]].setState(state)
+                    self.world[state[0]][state[1]].putState(state, list.timestamp)
+                elif state[1] in self.createQueue:
+                    self.createQueue[state[1]][1].putState(state, list.timestamp)
                 else:
                     obj = GameObject.fromState(state)
+                    obj.lastState = (list.timestamp, state)
                     if state[1] == Player.TYPE:
                         obj.lastTimestamp = list.timestamp
                     if state[1] != Bullet.TYPE:
                         obj.area = self.BOUNDS
                         obj.solids = self.solid_world
 
-                    self.addObject(obj)
+                    self.createQueue[obj.id] = (list.timestamp, obj)
+                    print 'Add:', obj.id
             elif msg.type == Message.REMOVE:
-                if msg.id in self.world[msg.objType]:
-                    self.removeObject(self.world[msg.objType][msg.id])
+                print 'Remove:', msg.id
+                self.removeQueue += [(list.timestamp, msg.objType, msg.id)]
             elif msg.type == Message.META:
                 if msg.entry.id not in self.playerNicks:
                     nick = self.playerFont.render(msg.entry.name, True, self.NICK_COLOR)
