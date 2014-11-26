@@ -17,8 +17,8 @@ class Bullet(GameObject):
         self.lastState = (0,(self.type, self.id, self.x, self.y, self.angle))
 
 
-    def move(self, delta):
-        GameObject.move(self, scale=delta*self.speed, angle=self.angle)
+    def move(self, timestamp, delta):
+        GameObject.move(self, timestamp, scale=delta*self.speed, angle=self.angle)
 
     def interpolateStates(self, d, state):
         self.x = self.interVar(d, state, 2)
@@ -51,9 +51,9 @@ class Player(GameObject):
     STATE_FMT = "IfffI"
     STATE_SIZE = 21
 
-    def __init__(self, position, angle, area, solids, objId=None):
+    def __init__(self, position, angle, area, history, objId=None):
         GameObject.__init__(self, position, angle, self.SIZE, self.TYPE, objId,
-                area=area, solids=solids)
+                area=area, history=history)
 
         self.health = self.HEALTH
         self.next_shot = 0
@@ -130,6 +130,7 @@ class Player(GameObject):
                     self.speedx += 1
 
                 self.rotate(vector=(self.currentMsg.cursorX, self.currentMsg.cursorY))
+                self.move(self.lastTimestamp, vector=(self.speedx, self.speedy), scale=delta*0.001*self.SPEED)
                 if real:
                     if self.currentMsg.isSet(InputMessage.FIRE):
                         bullet = self.shoot(self.lastTimestamp)
@@ -145,7 +146,9 @@ class Player(GameObject):
                 else:
                     break
 
-        self.move(vector=(self.speedx, self.speedy), scale=delta*0.001*self.SPEED)
+
+        else:
+            self.move(vector=(self.speedx, self.speedy), scale=delta*0.001*self.SPEED)
         #print self.x, self.y, self.speedx, self.speedy, self.SPEED*delta*0.001
         return result
 
@@ -184,9 +187,9 @@ class Mob(GameObject):
     STATE_FMT = "IfffI"
     STATE_SIZE = 21
 
-    def __init__(self, position, angle, area, solids, objId=None):
+    def __init__(self, position, angle, area, history, objId=None):
         GameObject.__init__(self, position, angle, self.SIZE, self.TYPE, objId,
-                            area=area, solids=solids)
+                            area=area, history=history)
         self.health = self.HEALTH
         self.next_shot = 0
         self.target = None

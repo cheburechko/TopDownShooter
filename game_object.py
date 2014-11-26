@@ -13,7 +13,7 @@ class GameObject():
         return cls.ID - 1
 
     def __init__(self, position, angle, size, objType, objId=None, solid=True,
-            area=None, solids=None):
+            area=None, history=None):
         self.x = position[0]
         self.y = position[1]
         self.angle = angle
@@ -24,7 +24,7 @@ class GameObject():
 
         # Movement limiters
         self.area = area
-        self.solids = solids
+        self.history = history
         # Interpolation vars
         self.states = []
         self.lastState = (0, )
@@ -42,14 +42,7 @@ class GameObject():
             return True
         return False
 
-    def collisions(self, obj_list):
-        ans = []
-        for obj in obj_list:
-            if (self.id != obj.id) and self.hitTest(obj):
-                ans += [obj]
-        return ans
-
-    def move(self, vector=None, scale=None, angle=None, position=None):
+    def move(self, timestamp, vector=None, scale=None, angle=None, position=None):
         oldPos = (self.x, self.y)
         resultingScale = 1
         if scale is not None:
@@ -66,8 +59,8 @@ class GameObject():
             self.y = position[1]
 
         if self.solid:
-            if self.solids is not None:
-                cols = self.collisions(self.solids.values())
+            if self.history is not None:
+                cols = self.history.collisions(self, timestamp, solidOnly=True)
                 if len(cols) > 0:
                     self.x = oldPos[0]
                     self.y = oldPos[1]
