@@ -40,6 +40,7 @@ class LocalSimulation():
         self.clock = pygame.time.Clock()
         self.timestamp = pygame.time.get_ticks()
         self.timestamp_offset = 0
+        self.lastUpdate = 0
 
         # Entities
         self.players = {}
@@ -234,6 +235,9 @@ class LocalSimulation():
             pygame.display.flip()
 
     def sync(self, list):
+        if list.timestamp < self.lastUpdate:
+            return
+        self.lastUpdate = list.timestamp
 
         self.renderLock.acquire()
         for msg in list.msgs:
@@ -260,7 +264,6 @@ class LocalSimulation():
                     self.playerNicks[msg.entry.id] = (nick, rect)
 
                 self.playerEntries[msg.entry.id] = msg.entry
-
         self.renderLock.release()
 
 

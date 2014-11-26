@@ -40,7 +40,7 @@ class Player(GameObject):
     TYPE = 1
     HEALTH = 5
     FIRE_PERIOD = 125
-    FIRE_DIST = 1
+    FIRE_DIST = 5
     STATE_FMT = "IfffffI"
     STATE_SIZE = 29
 
@@ -119,6 +119,7 @@ class Player(GameObject):
                     self.speedx += 1
 
                 self.rotate(vector=(self.currentMsg.cursorX, self.currentMsg.cursorY))
+                self.move(vector=(self.speedx, self.speedy), scale=delta*0.001*self.SPEED)
                 if real:
                     if self.currentMsg.isSet(InputMessage.FIRE):
                         bullet = self.shoot(self.lastTimestamp)
@@ -133,8 +134,8 @@ class Player(GameObject):
                         del self.msgs[0]
                 else:
                     break
-
-        self.move(vector=(self.speedx, self.speedy), scale=delta*0.001*self.SPEED)
+        else:
+            self.move(vector=(self.speedx, self.speedy), scale=delta*0.001*self.SPEED)
         #print self.x, self.y, self.speedx, self.speedy, self.SPEED*delta*0.001
         return result
 

@@ -8,6 +8,7 @@ class Server():
 
     MSGS_PER_SECOND = 20
     META_PERIOD = 1000
+    DROP_PERIOD = 300
 
     def __init__(self, address):
         self.msgQ = Queue.Queue()
@@ -58,6 +59,8 @@ class Server():
                 self.players[udpMsg.connID] = self.sim.addPlayer(msg)
                 self.server.send(ConnectMessage(str(self.players[udpMsg.connID])).toString(),
                                  udpMsg.connID)
+            elif (pygame.time.get_ticks() - msg.timestamp > self.DROP_PERIOD):
+                continue
             elif msg.type == Message.CHAT:
                 self.server.sendToAll(udpMsg.data)
             elif msg.type == Message.INPUT:
@@ -66,7 +69,7 @@ class Server():
             elif msg.type == Message.PING:
                 if (udpMsg.connID in self.players):
                     self.sim.updateLatency(self.players[udpMsg.connID],
-                                           pygame.time.get_ticks() - self.lastPing)
+                                           (pygame.time.get_ticks() - self.lastPing)/2)
 
 if __name__ == '__main__':
     if len(sys.argv) < 3:
