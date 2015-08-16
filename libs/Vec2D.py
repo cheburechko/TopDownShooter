@@ -333,6 +333,9 @@ class Vec2d(object):
     def shift(cls, angle, scale):
         return Vec2d(1,0).rotated(angle) * scale
 
+    def __trunc__(self):
+        return (math.trunc(self.x), math.trunc(self.y))
+
 
 ########################################################################
 ## Unit Testing                                                       ##
