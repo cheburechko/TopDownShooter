@@ -1,9 +1,10 @@
 from models import *
 from pygame.locals import *
-from messages import *
+from messages_shortcut import *
 import pygame
 from threading import Lock
-from gui import ScoreBoard, InputBox, ChatMessages
+from gui.gui import ScoreBoard, InputBox, ChatMessages
+from graphics.GameObjectSprite import GameObjectSprite
 
 pygame.font.init()
 

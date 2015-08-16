@@ -1,6 +1,6 @@
 from models import *
-import pygame, itertools
-from messages import *
+import pygame, itertools, random
+from messages_shortcut import *
 from metadata import PlayerEntry
 class ServerSimulation():
     """

@@ -1,7 +1,7 @@
 from udp import UDPServer
 import Queue, thread, sys
 from server_simulation import ServerSimulation
-from messages import *
+from messages_shortcut import *
 import pygame
 
 class Server():
