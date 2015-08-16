@@ -23,7 +23,7 @@ COLOR = (0, 0, 0)
 
 screen = pygame.display.set_mode(SCREEN_AREA, DOUBLEBUF)
 screen.fill(BACKGROUND)
-camera = Camera(screen.get_rect(), 0., 30)
+camera = Camera(screen.get_rect(), 0, 30)
 camera.move((0, 0))
 
 for shape in shapes:

@@ -20,9 +20,8 @@ class Camera:
         self.scale = scale
 
     def transform(self, coords):
-        new_point = (Vec2d(coords) - self.viewport.center) * self.scale - self.viewport.topleft
-        return new_point.rotated(self.angle)
-
+        new_point = ((Vec2d(coords) - self.viewport.center) * self.scale).rotated(self.angle) - self.viewport.topleft
+        return new_point
     def reverse_transform(self, coords):
         point = Vec2d(coords).rotated(-self.angle)
         return point / self.scale + self.viewport.topleft
