@@ -5,6 +5,7 @@ import pygame
 from threading import Lock
 from gui.gui import ScoreBoard, InputBox, ChatMessages
 from graphics.GameObjectSprite import GameObjectSprite
+from graphics.Camera import Camera
 
 pygame.font.init()
 
@@ -38,6 +39,7 @@ class LocalSimulation():
 
         self.screen = pygame.display.set_mode(self.SCREEN_AREA, DOUBLEBUF)
         self.screen.fill(self.BACKGROUND)
+        self.camera = Camera(self.screen.get_rect(), 0., 1.)
         self.clock = pygame.time.Clock()
         self.timestamp = pygame.time.get_ticks()
         self.timestamp_offset = 0
@@ -190,29 +192,30 @@ class LocalSimulation():
                 self.bullets[id].move(delta*self.TIME_SCALE)
 
             # Drawing
-
+            if self.playerID in self.players:
+                self.camera.move(self.players[self.playerID].pos)
             #Sprites
-            self.sprites.update()
+            self.sprites.update(self.camera)
             self.sprites.draw(self.screen)
             #Bars
             for id in self.mobs:
                 if id in self.healthBars:
-                    self.healthBars[id].center = (self.mobs[id].x,
-                                                  self.mobs[id].y + Mob.SIZE)
+                    self.healthBars[id].center = self.camera.transform((self.mobs[id].pos.x,
+                                                  self.mobs[id].pos.y + Mob.SIZE))
                     self.screen.blit(self.mobBars[self.mobs[id].health-1],
                                      self.healthBars[id].topleft)
 
             for id in self.players:
                 if id in self.healthBars:
-                    self.healthBars[id].center = (self.players[id].x,
-                                                  self.players[id].y + self.PLAYER_BAR_OFFSET)
+                    self.healthBars[id].center = self.camera.transform((self.players[id].pos.x,
+                                                  self.players[id].pos.y + self.PLAYER_BAR_OFFSET))
                     self.screen.blit(self.playerBars[self.players[id].health],
                                      self.healthBars[id].topleft)
 
             # Nicks
             for id in self.playerNicks:
-                self.playerNicks[id][1].center = (self.players[id].x,
-                                                  self.players[id].y+self.NICK_OFFSET)
+                self.playerNicks[id][1].center = self.camera.transform((self.players[id].pos.x,
+                                                  self.players[id].pos.y+self.NICK_OFFSET))
                 self.screen.blit(self.playerNicks[id][0], self.playerNicks[id][1].topleft)
             #Chat
             self.chat.draw(self.timestamp, self.messages, self.playerEntries, self.screen)
@@ -271,7 +274,7 @@ class LocalSimulation():
 
 class InputControl():
 
-    FRAMES_PER_SECOND = 20
+    FRAMES_PER_SECOND = 60
 
     def __init__(self, client, sim):
         self.firing = False
@@ -325,7 +328,7 @@ class InputControl():
             if self.k_down: msg.setButton(InputMessage.DOWN)
             if self.firing: msg.setButton(InputMessage.FIRE)
 
-            msg.setCursor(pygame.mouse.get_pos())
+            msg.setCursor(self.sim.camera.reverse_transform(pygame.mouse.get_pos()))
             msg.msecs = delay
             msg.timestamp = timestamp
 

@@ -6,7 +6,7 @@ import pygame
 
 class Server():
 
-    MSGS_PER_SECOND = 20
+    MSGS_PER_SECOND = 60
     META_PERIOD = 1000
     DROP_PERIOD = 300
 

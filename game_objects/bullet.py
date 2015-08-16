@@ -21,12 +21,12 @@ class Bullet(GameObject):
 
     def getState(self):
         state = chr(self.type) + struct.pack(self.STATE_FMT, self.id,
-                self.x, self.y, self.angle)
+                self.pos.x, self.pos.y, self.angle)
         return state
 
     def setState(self, state):
-        self.x = state[2]
-        self.y = state[3]
+        self.pos.x = state[2]
+        self.pos.y = state[3]
         self.angle = state[4]
 
     @classmethod

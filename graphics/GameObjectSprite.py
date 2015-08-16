@@ -11,9 +11,11 @@ class GameObjectSprite(pygame.sprite.Sprite):
         self.entity.sprite = self
         self.src_image = image
         self.image = image
-        self.image = image.get_rect()
+        self.rect = image.get_rect()
 
-    def update(self):
-        self.image = pygame.transform.rotate(self.src_image, -self.entity.angle / math.pi * 180 - 90)
+    def update(self, camera):
+        self.image = pygame.transform.rotozoom(self.src_image,
+                                               (-camera.angle-self.entity.angle)-90,
+                                               camera.scale)
         self.rect = self.image.get_rect()
-        self.rect.center = (self.entity.x, self.entity.y)
+        self.rect.center = camera.transform(self.entity.pos)

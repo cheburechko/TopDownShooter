@@ -4,6 +4,7 @@ import math
 from messages_shortcut import InputMessage
 from game_object import GameObject
 from bullet import Bullet
+from libs.Vec2D import Vec2d
 
 class Player(GameObject):
     SIZE = 10
@@ -29,12 +30,12 @@ class Player(GameObject):
 
     def getState(self):
         state = chr(self.type) + struct.pack(self.STATE_FMT, self.id,
-                self.x, self.y, self.speedx, self.speedy, self.angle, self.health)
+                self.pos.x, self.pos.y, self.speedx, self.speedy, self.angle, self.health)
         return state
 
     def setState(self, state):
-        self.x = state[2]
-        self.y = state[3]
+        self.pos.x = state[2]
+        self.pos.y = state[3]
         self.speedx = state[4]
         self.speedy = state[5]
         self.angle = state[6]
@@ -113,8 +114,7 @@ class Player(GameObject):
     def shoot(self, timestamp):
         if self.next_shot < timestamp:
             dist = self.size + self.FIRE_DIST + Bullet.SIZE
-            bullet = Bullet((self.x + math.cos(self.angle) * dist,
-                             self.y + math.sin(self.angle) * dist),
+            bullet = Bullet(self.pos + Vec2d.shift(self.angle, dist),
                             self.angle, owner=self)
             self.next_shot = timestamp + self.FIRE_PERIOD
             return bullet

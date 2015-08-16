@@ -11,7 +11,7 @@ class ServerSimulation():
     SCREEN_AREA = (1024, 768)
     BOUNDS = (0, 1024, 0, 768)
     TIME_SCALE = 0.001
-    MAX_MOBS = 16
+    MAX_MOBS = 2
     MOB_RESPAWN_PERIOD = 3000
     PLAYER_RESPAWN_PERIOD = 3000
     PLAYER_COST = 5
@@ -116,10 +116,10 @@ class ServerSimulation():
 
             for bullet in self.world[Bullet.TYPE].values():
                 bullet.move(delta*self.TIME_SCALE)
-                if (bullet.x < self.BOUNDS[0]) or \
-                    (bullet.x > self.BOUNDS[1]) or \
-                    (bullet.y < self.BOUNDS[2]) or \
-                    (bullet.y > self.BOUNDS[3]):
+                if (bullet.pos.x < self.BOUNDS[0]) or \
+                    (bullet.pos.x > self.BOUNDS[1]) or \
+                    (bullet.pos.y < self.BOUNDS[2]) or \
+                    (bullet.pos.y > self.BOUNDS[3]):
                         bullet.alive = False
                         self.removeObject(bullet)
 

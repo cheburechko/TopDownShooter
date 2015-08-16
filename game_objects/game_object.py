@@ -1,4 +1,5 @@
 import struct, math
+from libs.Vec2D import Vec2d
 
 class GameObject():
 
@@ -14,8 +15,7 @@ class GameObject():
 
     def __init__(self, position, angle, size, objType, objId=None, solid=True,
             area=None, solids=None):
-        self.x = position[0]
-        self.y = position[1]
+        self.pos = Vec2d(position)
         self.angle = angle
         self.size = size
         self.solid = solid
@@ -35,7 +35,11 @@ class GameObject():
         self.alive = True
 
     def hitTest(self, obj):
-        if (self.x - obj.x) ** 2 + (self.y - obj.y) ** 2 < (self.size + obj.size) ** 2:
+        print self.type, self.id, self.pos
+        print obj.type, obj.id, obj.pos
+        print self.pos.get_distance(obj.pos)
+        print (self.size + obj.size)
+        if self.pos.get_distance(obj.pos) < (self.size + obj.size):
             return True
         return False
 
@@ -47,37 +51,33 @@ class GameObject():
         return ans
 
     def move(self, vector=None, scale=None, angle=None, position=None):
-        oldPos = (self.x, self.y)
+        oldPos = Vec2d(self.pos)
         resultingScale = 1
         if scale is not None:
             resultingScale = scale
 
         if vector is not None:
-            self.x += vector[0] * resultingScale
-            self.y += vector[1] * resultingScale
+            self.pos += Vec2d(vector) * resultingScale
         elif angle is not None:
-            self.x += math.cos(angle) * resultingScale
-            self.y += math.sin(angle) * resultingScale
+            self.pos += Vec2d.shift(angle,resultingScale)
         elif position is not None:
-            self.x = position[0]
-            self.y = position[1]
+            self.pos = Vec2d(position)
 
         if self.solid:
             if self.solids is not None:
                 cols = self.collisions(self.solids.values())
                 if len(cols) > 0:
-                    self.x = oldPos[0]
-                    self.y = oldPos[1]
+                    self.pos = oldPos
             # Boundaries
             if self.area is not None:
-                if self.x < self.area[0] or self.x > self.area[1]:
-                    self.x = oldPos[0]
-                if self.y < self.area[2] or self.y > self.area[3]:
-                    self.y = oldPos[1]
+                if self.pos.x < self.area[0] or self.pos.x > self.area[1]:
+                    self.pos.x = oldPos[0]
+                if self.pos.y < self.area[2] or self.pos.y > self.area[3]:
+                    self.pos.y = oldPos[1]
 
     def rotate(self, angle=None, vector=None):
         if vector is not None:
-            self.angle = math.atan2(vector[1] - self.y, vector[0] - self.x)
+            self.angle = (vector - self.pos).get_angle()
         elif angle is not None:
             self.angle = angle
 
