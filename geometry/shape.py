@@ -3,12 +3,14 @@ __author__ = 'thepunchy'
 from libs.Vec2D import Vec2d
 import math
 import pygame
+import struct
 
 class NotShapeClassException(Exception):
     pass
 
 class Shape:
     colliders = {}
+    shapes = {}
 
     def __init__(self, pos, angle):
         self.pos = Vec2d(pos)
@@ -20,6 +22,22 @@ class Shape:
         if not issubclass(cls1, Shape) or not issubclass(cls2, Shape):
             raise NotShapeClassException
         return cls1, cls2
+
+    @classmethod
+    def register_shape(cls, shape):
+        cls.shapes[shape.TYPE] = shape
+
+    @classmethod
+    def serialize(cls, self):
+        return chr(self.TYPE)+cls.shapes[self.TYPE].serialize(self)
+
+    @classmethod
+    def deserialize(cls, data):
+         return cls.shapes[ord(data[0])].deserialize(data[1:])
+
+    @classmethod
+    def serialized_size(cls, data):
+        return cls.shapes[ord(data[0])].serialized_size(data[1:])
 
     @classmethod
     def register_collider(cls, collider, shape1, shape2):
@@ -39,20 +57,20 @@ class Shape:
                 ans += [shape]
         return ans
 
-    def move(self, vector=None, pos=None, angle=None, scale=1):
+    def move(self, vector=None, position=None, angle=None, scale=1):
         if vector is not None:
             self.pos += Vec2d(vector) * scale
         elif angle is not None:
             self.pos += Vec2d.shift(angle, scale)
-        elif pos is not None:
-            self.pos = Vec2d(pos)
+        elif position is not None:
+            self.pos = Vec2d(position)
 
-    def move_and_collide(self, shapes, revert=True, vector=None, pos=None, angle=None, scale=1):
+    def move_and_collide(self, shapes, revert=True, vector=None, position=None, angle=None, scale=1):
         old_pos = self.pos
-        self.move(vector=vector, pos=pos, angle=angle, scale=scale)
+        self.move(vector=vector, position=position, angle=angle, scale=scale)
         collisions = self.get_collisions(shapes)
         if revert and len(collisions) > 0:
-            self.move(pos=old_pos)
+            self.move(position=old_pos)
         return collisions
 
     def rotate(self, angle=None, vector=None, diff_angle=None, max_rot_speed=None):
@@ -86,6 +104,9 @@ class Shape:
 
 
 class Circle(Shape):
+    TYPE = 1
+    SER_FMT = "ffff"
+    SER_SIZE = 16
     def __init__(self, pos, angle, radius):
         Shape.__init__(self, pos, angle)
         self.radius = radius
@@ -97,8 +118,23 @@ class Circle(Shape):
                                   math.trunc(self.radius*camera.scale+0.5),
                                   1)
 
+    def serialize(self):
+        return struct.pack(self.SER_FMT, self.pos.x, self.pos.y, self.angle, self.radius)
+
+    @classmethod
+    def deserialize(cls, ser):
+        data = struct.unpack(cls.SER_FMT, ser)
+        return Circle(Vec2d(data[0], data[1]), data[2], data[3])
+
+    @classmethod
+    def serialized_size(cls, data):
+        return cls.SER_SIZE
+
 
 class Segment(Shape):
+    TYPE = 2
+    SER_FMT = "ffff"
+    SER_SIZE = 16
     def __init__(self, pos, angle=None, length=None, vector=None, end=None):
         if end is not None:
             vector = Vec2d(end) - Vec2d(pos)
@@ -126,8 +162,25 @@ class Segment(Shape):
     def draw(self, surface, camera, color):
        return pygame.draw.aaline(surface, color, camera.transform(self.pos), camera.transform(self.end))
 
+    def serialize(self):
+        return struct.pack(self.SER_FMT, self.pos.x, self.pos.y, self.end.x, self.end.y)
+
+    @classmethod
+    def deserialize(cls, ser):
+        data = struct.unpack(cls.SER_FMT, ser)
+        return Segment(Vec2d(data[0], data[1]), end=Vec2d(data[2], data[3]))
+
+    @classmethod
+    def serialized_size(cls, data):
+        return cls.SER_SIZE
+
 
 class Wireframe(Shape):
+    TYPE = 3
+    SER_FMT = "fffI"
+    SER_SIZE = 16
+    SER_POINT_FMT = "ff"
+    SER_POINT_SIZE = 8
     def __init__(self, pos, angle, points):
         Shape.__init__(self, pos, angle)
         self.segments = []
@@ -141,3 +194,24 @@ class Wireframe(Shape):
 
     def draw(self, surface, camera, color):
         return pygame.draw.aalines(surface, color, True, [camera.transform(s.pos) for s in self])
+
+    def serialize(self):
+        head = struct.pack(self.SER_FMT, self.pos.x, self.pos.y, self.angle, len(self.segments))
+        for s in self.segments:
+            head += struct.pack(self.SER_POINT_FMT, s.pos.x, s.pos.y)
+        return head
+
+    @classmethod
+    def deserialize(cls, ser):
+        data = struct.unpack(cls.SER_FMT, ser[:cls.SER_SIZE])
+        points = []
+        for i in range(data[3]):
+            points += [Vec2d(struct.unpack(cls.SER_POINT_FMT,
+                                          ser[cls.SER_SIZE+i*cls.SER_POINT_SIZE:cls.SER_SIZE+(
+                                              i+1)*cls.SER_POINT_SIZE]))]
+        return Wireframe(Vec2d(data[0], data[1]), data[2], points)
+
+    @classmethod
+    def serialized_size(cls, data):
+        size = struct.unpack("I", data[cls.SER_SIZE-4:cls.SER_SIZE])
+        return cls.SER_SIZE + cls.SER_POINT_SIZE*size

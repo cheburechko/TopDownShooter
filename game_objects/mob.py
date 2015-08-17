@@ -2,6 +2,7 @@ from game_object import GameObject
 from bullet import Bullet
 import math, random, struct
 from libs.Vec2D import Vec2d
+from geometry_shortcut import Circle
 
 class Mob(GameObject):
     SIZE = 25
@@ -10,12 +11,12 @@ class Mob(GameObject):
     HEALTH = 3
     FIRE_PERIOD = 100000
     FIRE_DIST = 1
-    STATE_FMT = "IffII"
-    STATE_SIZE = 21
+    STATE_FMT = "ffII"
+    STATE_SIZE = 16
 
-    def __init__(self, position, angle, area, solids, objId=None):
-        GameObject.__init__(self, position, angle, self.SIZE, self.TYPE, objId,
-                            area=area, solids=solids)
+    def __init__(self, position, angle, solids, objId=None):
+        GameObject.__init__(self, Circle(position, angle, self.SIZE), self.TYPE, objId,
+                            solids=solids)
         self.health = self.HEALTH
         self.next_shot = 0
         self.target = None
@@ -24,21 +25,26 @@ class Mob(GameObject):
         t = self.target
         if t is None:
             t = 2**32 - 1
-        state = chr(self.type) + struct.pack(self.STATE_FMT, self.id,
+        state = struct.pack(self.STATE_FMT,
                 self.pos.x, self.pos.y, t, self.health)
         return state
 
-    def setState(self, state):
-        self.pos.x = state[2]
-        self.pos.y = state[3]
-        self.target = state[4]
+    def setState(self, data):
+        state = struct.unpack(self.STATE_FMT, data)
+        self.pos.y = state[0]
+        self.pos.y = state[1]
+        self.target = state[2]
         if self.target == 2**32 - 1:
             self.target = None
-        self.health = state[5]
+        self.health = state[3]
 
     @classmethod
-    def fromState(cls, state):
-        obj = Mob((0, 0), 0, None, None, state[1])
+    def get_state_size(cls, data):
+        return cls.STATE_SIZE
+
+    @classmethod
+    def fromState(cls, state, id):
+        obj = Mob((0, 0), 0, None, id)
         obj.setState(state)
         return obj
 
@@ -57,7 +63,7 @@ class Mob(GameObject):
 
         if self.next_shot < timestamp:
             self.next_shot = timestamp + self.FIRE_PERIOD
-            dist = self.size + self.FIRE_DIST + Bullet.SIZE
+            dist = self.shape.radius + self.FIRE_DIST + Bullet.SIZE
             bullet = Bullet(self.pos + Vec2d.shift(self.angle, dist),
                             self.angle, owner=self)
             return bullet

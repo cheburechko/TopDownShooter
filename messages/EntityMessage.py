@@ -12,9 +12,8 @@ class EntityMessage(Message):
         self.entity = entity
 
     def toString(self):
-        data = self.entity.getState()
-        self.data = Message.toString(self) + \
-                    data
+        data = GameObject.getState(self.entity)
+        self.data = Message.toString(self) + data
         return self.data
 
     @classmethod

@@ -135,7 +135,7 @@ class LocalSimulation():
             sprite = GameObjectSprite(obj, self.MOB_IMG)
             self.healthBars[ID] = self.mobBars[0].get_rect()
         if obj.solid:
-            self.solid_world[ID] = obj
+            self.solid_world[ID] = obj.shape
     
         self.sprites.add(sprite)
 
@@ -246,17 +246,17 @@ class LocalSimulation():
         self.renderLock.acquire()
         for msg in list.msgs:
             if msg.type == Message.ENTITY:
-                state = GameObject.unpackState(msg.state)
-                if state[1] in self.world[state[0]]:
-                    self.world[state[0]][state[1]].setState(state)
+                objType = GameObject.get_type(msg.state)
+                objId = GameObject.get_id(msg.state)
+                if objId in self.world[objType]:
+                    state = GameObject.get_body(msg.state)
+                    self.world[objType][objId].setState(state)
                 else:
-                    obj = GameObject.fromState(state)
-                    if state[1] == Player.TYPE:
+                    obj = GameObject.fromState(msg.state)
+                    if objType == Player.TYPE:
                         obj.lastTimestamp = list.timestamp
-                    if state[1] != Bullet.TYPE:
-                        obj.area = self.BOUNDS
+                    if objType != Bullet.TYPE:
                         obj.solids = self.solid_world
-
                     self.addObject(obj)
             elif msg.type == Message.REMOVE:
                 if msg.id in self.world[msg.objType]:

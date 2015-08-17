@@ -39,7 +39,7 @@ class ServerSimulation():
     def addObject(self, obj):
         self.world[obj.type][obj.id] = obj
         if obj.solid:
-            self.solidWorld[obj.id] = obj
+            self.solidWorld[obj.id] = obj.shape
 
     def removeObject(self, obj):
         self.removed += [obj]
@@ -53,14 +53,12 @@ class ServerSimulation():
              random.random()*(self.BOUNDS[3] - self.BOUNDS[2]) + self.BOUNDS[2])
 
     def placeRandom(self, obj):
-        obj.move(position=self.getRandomPos())
-        w = self.solidWorld.values()
-        while len(obj.collisions(w)) != 0:
-            obj.move(position=self.getRandomPos())
+        while len(obj.move(position=self.getRandomPos())) != 0:
+            pass
 
     def addPlayer(self, msg):
         player = Player((0,0), 0,
-                self.BOUNDS, self.solidWorld)
+                self.solidWorld)
         self.placeRandom(player)
         self.addObject(player)
         self.playerEntries[player.id] = PlayerEntry(player.id, msg.name)
@@ -69,7 +67,7 @@ class ServerSimulation():
     def spawnMob(self):
         if self.timestamp > self.lastMob + self.MOB_RESPAWN_PERIOD and\
             len(self.world[Mob.TYPE]) < self.MAX_MOBS:
-            mob = Mob((0,0), 0, self.BOUNDS, self.solidWorld)
+            mob = Mob((0,0), 0, self.solidWorld)
             self.placeRandom(mob)
             self.addObject(mob)
             self.lastMob = self.timestamp
