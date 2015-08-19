@@ -4,6 +4,7 @@ from libs.Vec2D import Vec2d
 import math
 import pygame
 import struct
+from graphics.Camera import Camera
 
 class NotShapeClassException(Exception):
     pass
@@ -37,7 +38,7 @@ class Shape:
 
     @classmethod
     def serialized_size(cls, data):
-        return cls.shapes[ord(data[0])].serialized_size(data[1:])
+        return cls.shapes[ord(data[0])].serialized_size(data[1:])+1
 
     @classmethod
     def register_collider(cls, collider, shape1, shape2):
@@ -53,7 +54,7 @@ class Shape:
     def get_collisions(self, shapes):
         ans = []
         for shape in shapes:
-            if self.hit_test(shape):
+            if shape is not self and self.hit_test(shape):
                 ans += [shape]
         return ans
 
@@ -65,9 +66,9 @@ class Shape:
         elif position is not None:
             self.pos = Vec2d(position)
 
-    def move_and_collide(self, shapes, revert=True, vector=None, position=None, angle=None, scale=1):
-        old_pos = self.pos
-        self.move(vector=vector, position=position, angle=angle, scale=scale)
+    def move_and_collide(self, shapes, revert=True, scale=1, **kwargs):
+        old_pos = Vec2d(self.pos)
+        self.move(scale=scale, **kwargs)
         collisions = self.get_collisions(shapes)
         if revert and len(collisions) > 0:
             self.move(position=old_pos)
@@ -78,7 +79,7 @@ class Shape:
         if angle is not None:
             new_angle = angle
         elif vector is not None:
-            new_angle = Vec2d(vector).get_angle()
+            new_angle = (vector - self.pos).get_angle()
         elif diff_angle is not None:
             new_angle += diff_angle
 
@@ -91,9 +92,9 @@ class Shape:
         else:
             self.angle += max_rot_speed
 
-    def rotate_and_collide(self, shapes, revert=True, angle=None, vector=None, diff_angle=None, max_rot_speed=None):
+    def rotate_and_collide(self, shapes, revert=True, **kwargs):
         old_angle = self.angle
-        self.rotate(angle=angle, vector=vector, diff_angle=diff_angle, max_rot_speed=max_rot_speed)
+        self.rotate(**kwargs)
         collisions = self.get_collisions(shapes)
         if revert and len(collisions) > 0:
             self.rotate(angle=old_angle)
@@ -101,6 +102,9 @@ class Shape:
 
     def draw(self, surface, camera, color):
         return pygame.Rect(0, 0, 0, 0)
+
+    def bake_sprite(self):
+        return None
 
 
 class Circle(Shape):
@@ -117,6 +121,12 @@ class Circle(Shape):
                                   math.trunc(camera.transform(self.pos)),
                                   math.trunc(self.radius*camera.scale+0.5),
                                   1)
+
+    def bake_sprite(self):
+        surface = pygame.Surface([self.radius*2, self.radius*2])
+        surface.set_alpha(0)
+        self.draw(surface, Camera(surface.get_rect(), 0, 1), (0, 0, 0))
+        return surface
 
     def serialize(self):
         return struct.pack(self.SER_FMT, self.pos.x, self.pos.y, self.angle, self.radius)
@@ -162,6 +172,11 @@ class Segment(Shape):
     def draw(self, surface, camera, color):
        return pygame.draw.aaline(surface, color, camera.transform(self.pos), camera.transform(self.end))
 
+    def bake_sprite(self):
+        surface = pygame.Surface([int(self.vector.get_length()), 1])
+        surface.fill(0)
+        return surface
+
     def serialize(self):
         return struct.pack(self.SER_FMT, self.pos.x, self.pos.y, self.end.x, self.end.y)
 
@@ -193,7 +208,13 @@ class Wireframe(Shape):
         return Segment(s.pos.rotated(self.angle) + self.pos, vector = s.vector.rotated(self.angle))
 
     def draw(self, surface, camera, color):
-        return pygame.draw.aalines(surface, color, True, [camera.transform(s.pos) for s in self])
+        return pygame.draw.lines(surface, color, True, [camera.transform(s.pos) for s in self])
+
+    def bake_sprite(self):
+
+        surface = pygame.Surface([self.radius*2, self.radius*2])
+        surface.set_alpha(0)
+        self.draw(surface, Camera(surface.get_rect(), 0, 1), (0, 0, 0))
 
     def serialize(self):
         head = struct.pack(self.SER_FMT, self.pos.x, self.pos.y, self.angle, len(self.segments))
@@ -214,4 +235,4 @@ class Wireframe(Shape):
     @classmethod
     def serialized_size(cls, data):
         size = struct.unpack("I", data[cls.SER_SIZE-4:cls.SER_SIZE])
-        return cls.SER_SIZE + cls.SER_POINT_SIZE*size
+        return cls.SER_SIZE + cls.SER_POINT_SIZE*size[0]

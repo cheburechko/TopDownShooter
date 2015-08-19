@@ -2,6 +2,9 @@ from models import *
 import pygame, itertools, random
 from messages_shortcut import *
 from metadata import PlayerEntry
+from geometry_shortcut import *
+from libs.Vec2D import Vec2d
+
 class ServerSimulation():
     """
     This class simulates all of the game events
@@ -11,7 +14,7 @@ class ServerSimulation():
     SCREEN_AREA = (1024, 768)
     BOUNDS = (0, 1024, 0, 768)
     TIME_SCALE = 0.001
-    MAX_MOBS = 2
+    MAX_MOBS = 5
     MOB_RESPAWN_PERIOD = 3000
     PLAYER_RESPAWN_PERIOD = 3000
     PLAYER_COST = 5
@@ -28,13 +31,18 @@ class ServerSimulation():
         self.world[Player.TYPE] = {}
         self.world[Bullet.TYPE] = {}
         self.world[Mob.TYPE] = {}
+        self.world[Walls.TYPE] = {}
         self.solidWorld = {}
         self.respawnQueue = {}
         self.removed = []
 
         self.playerEntries = {}
 
-        self.verbose = False
+        self.verbose = True
+
+        self.addObject(Walls(Wireframe((0,0), 0,
+                                  [(0,0), (0,self.SCREEN_AREA[1]),
+                                   self.SCREEN_AREA, (self.SCREEN_AREA[0], 0)])))
 
     def addObject(self, obj):
         self.world[obj.type][obj.id] = obj
@@ -84,6 +92,8 @@ class ServerSimulation():
 
     def simulate(self):
         while self.alive:
+            if self.verbose:
+                print self.clock.get_fps()
             delta = self.clock.tick(self.FRAMES_PER_SECOND)
             self.timestamp = pygame.time.get_ticks()
 

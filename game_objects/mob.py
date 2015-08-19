@@ -9,7 +9,7 @@ class Mob(GameObject):
     SPEED = 50
     TYPE = 2
     HEALTH = 3
-    FIRE_PERIOD = 100000
+    FIRE_PERIOD = 1000
     FIRE_DIST = 1
     STATE_FMT = "ffII"
     STATE_SIZE = 16
@@ -31,7 +31,7 @@ class Mob(GameObject):
 
     def setState(self, data):
         state = struct.unpack(self.STATE_FMT, data)
-        self.pos.y = state[0]
+        self.pos.x = state[0]
         self.pos.y = state[1]
         self.target = state[2]
         if self.target == 2**32 - 1:
@@ -59,7 +59,7 @@ class Mob(GameObject):
             return None
 
         self.rotate(vector=players[self.target].pos)
-        GameObject.move(self, angle=self.angle, scale=self.SPEED*delta)
+        self.move(angle=self.angle, scale=self.SPEED*delta)
 
         if self.next_shot < timestamp:
             self.next_shot = timestamp + self.FIRE_PERIOD

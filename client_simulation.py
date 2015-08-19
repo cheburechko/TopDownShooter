@@ -26,6 +26,8 @@ class LocalSimulation():
     PLAYER_IMG = pygame.image.load("resources/Player.png")
     BULLET_IMG= pygame.image.load("resources/Bullet.png")
     MOB_IMG = pygame.image.load("resources/Mob.png")
+    IMGS = {Mob.TYPE: MOB_IMG, Player.TYPE: PLAYER_IMG,
+            Bullet.TYPE: BULLET_IMG, Walls.TYPE: None}
 
     BAR_HEIGHT = 5
     MOB_BAR_LENGTH = 50
@@ -49,10 +51,12 @@ class LocalSimulation():
         self.players = {}
         self.bullets = {}
         self.mobs = {}
+        self.walls = {}
         self.world = {Player.TYPE: self.players, Bullet.TYPE: self.bullets,
-                      Mob.TYPE: self.mobs}
+                      Mob.TYPE: self.mobs, Walls.TYPE: self.walls}
         self.solid_world = {}
         self.sprites = pygame.sprite.Group()
+        self.geometry = {}
         self.playerID = None
 
         #Metadata
@@ -103,41 +107,40 @@ class LocalSimulation():
     def removeObject(self, obj):
         ID = obj.id
         if obj.type == Player.TYPE:
-            del self.players[ID]
             if ID in self.playerNicks:
                 del self.playerNicks[ID]
             if ID in self.playerEntries:
                 del self.playerEntries[ID]
-        elif obj.type == Bullet.TYPE:
-            del self.bullets[ID]
-        elif obj.type == Mob.TYPE:
-            del self.mobs[ID]
+        del self.world[obj.type][obj.id]
+
         if obj.solid:
             del self.solid_world[ID]
             if ID in self.healthBars:
                 self.drawBackground(self.screen, self.healthBars[ID])
                 del self.healthBars[ID]
-    
-        self.sprites.remove(obj.sprite)
+
+        if obj.type == Walls.TYPE:
+            del self.geometry[obj.id]
+        else:
+            self.sprites.remove(obj.sprite)
     
     def addObject(self, obj):
         ID = obj.id
-        sprite = None
         if obj.type == Player.TYPE:
-            self.players[ID] = obj
-            sprite = GameObjectSprite(obj, self.PLAYER_IMG)
             self.healthBars[ID] = self.playerBars[0].get_rect()
-        elif obj.type == Bullet.TYPE:
-            self.bullets[ID] = obj
-            sprite = GameObjectSprite(obj, self.BULLET_IMG)
         elif obj.type == Mob.TYPE:
-            self.mobs[ID] = obj
-            sprite = GameObjectSprite(obj, self.MOB_IMG)
             self.healthBars[ID] = self.mobBars[0].get_rect()
+        self.world[obj.type][obj.id] = obj
         if obj.solid:
             self.solid_world[ID] = obj.shape
-    
-        self.sprites.add(sprite)
+
+        if obj.type == Walls.TYPE:
+            self.geometry[obj.id] = obj.shape
+        else:
+            sprite = GameObjectSprite(obj, self.IMGS[obj.type])
+            self.sprites.add(sprite)
+
+
 
     def processInput(self, msg):
         if msg.type == Message.INPUT:
@@ -178,6 +181,8 @@ class LocalSimulation():
                 self.drawBackground(self.screen, self.healthBars[id])
             #Sprites
             self.sprites.clear(self.screen, self.drawBackground)
+            for shape in self.geometry.values():
+               shape.draw(self.screen, self.camera, self.BACKGROUND)
 
             self.renderLock.acquire()
             # Extrapolation
@@ -194,6 +199,9 @@ class LocalSimulation():
             # Drawing
             if self.playerID in self.players:
                 self.camera.move(self.players[self.playerID].pos)
+            #Geometry
+            for shape in self.geometry.values():
+               shape.draw(self.screen, self.camera, (0,0,0))
             #Sprites
             self.sprites.update(self.camera)
             self.sprites.draw(self.screen)
@@ -232,7 +240,6 @@ class LocalSimulation():
             fps = self.playerFont.render(str(int(self.clock.get_fps())), True, (0,0,0))
             r = fps.get_rect()
             r.topleft = (0, 0)
-
 
             self.renderLock.release()
 

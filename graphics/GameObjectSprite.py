@@ -2,7 +2,7 @@ __author__ = 'thepunchy'
 
 import math
 import pygame
-
+from game_objects.mob import Mob
 class GameObjectSprite(pygame.sprite.Sprite):
 
     def __init__(self, entity, image):

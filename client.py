@@ -1,7 +1,7 @@
 import Queue, thread, sys
 from client_simulation import LocalSimulation, InputControl
 from udp import UDPClient
-from messages_shortcut import *
+from registry import *
 import pygame
 
 class Client():

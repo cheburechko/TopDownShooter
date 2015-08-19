@@ -6,16 +6,21 @@ from geometry_shortcut import Shape
 
 class Walls(GameObject):
 
-    TYPE = 4
+    TYPE = 3
 
     def __init__(self, shape, objId=None):
         GameObject.__init__(self, shape, self.TYPE, objId, solid=True)
 
     def getState(self):
-        return self.shape.serialize()
+        return Shape.serialize(self.shape)
 
     def setState(self, state):
-        self.shape = Shape.deserialize(state)
+        shape = Shape.deserialize(state)
+        if self.shape is None:
+            self.shape = shape
+        else:
+            self.shape.pos = shape.pos
+            self.shape.angle = shape.angle
 
     @classmethod
     def get_state_size(cls, data):

@@ -43,6 +43,8 @@ print w1.hit_test(s2)
 print not w1.hit_test(s1)
 print not w2.hit_test(c3)
 
+
+
 run = True
 while run:
     for event in pygame.event.get():
