@@ -21,8 +21,6 @@ gen.minRoomSize = 100
 gen.roomNumber = 10
 
 edges = gen.generate()
-
-
 for shape in edges:
     shape.draw(screen, camera, COLOR)
 
@@ -35,4 +33,10 @@ while run:
         if event.type == KEYDOWN:
             run = False
             break
+        elif event.type == MOUSEBUTTONDOWN:
+            screen.fill(BACKGROUND)
+            shapes = gen.generate()
+            for shape in shapes:
+                shape.draw(screen, camera, COLOR)
+            pygame.display.flip()
     pygame.time.wait(100)

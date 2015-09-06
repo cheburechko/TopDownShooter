@@ -61,7 +61,6 @@ class SparseLevelGenerator(object):
             edges[edge[1]] += [edge[0]]
             maxSize[edge[0]] = min(maxSize[edge[0]], d - self.minRoomSize)
             maxSize[edge[1]] = min(maxSize[edge[1]], d - self.minRoomSize)
-            segments += [Segment(points[edge[0]], end=points[edge[1]])]
 
         rooms = []
         for i in range(len(points)):
@@ -71,11 +70,49 @@ class SparseLevelGenerator(object):
                                  points[i].get_distance(points[j]) - roomSizes[i])
             rooms += [Circle(points[i], 0, roomSizes[i])]
 
-        result = []
-        for segment in segments:
-            if len(segment.get_collisions(rooms)) == 2:
-                result += [segment]
+        old_edges = edges
+        edges = {}
 
-        return result+rooms
+        for p1 in old_edges:
+            edges[p1] = []
+            for p2 in old_edges[p1]:
+                segment = Segment(points[p1], end=points[p2])
+                if len(segment.get_collisions(rooms)) == 2:
+                    edges[p1] += [p2]
+
+        #Reduce number of edges
+        connected = True
+        while connected:
+            random_point = random.randint(0, len(points)-1)
+            random_edge = random.randint(0, len(edges[random_point])-1)
+            edge_end = edges[random_point][random_edge]
+            edge = (random_point, edges[random_point][random_edge])
+            del edges[random_point][random_edge]
+            for i in range(len(edges[edge_end])):
+                if edges[edge_end][i] == random_point:
+                    break
+            del edges[edge_end][i]
+
+            q = [0]
+            i = 0
+            # TODO? slow and lazy
+            while i < len(q):
+                for p in edges[q[i]]:
+                    if p not in q:
+                        q += [p]
+                i += 1
+            if len(q) < len(points):
+                connected = False
+                edges[edge[0]] += [edge[1]]
+                edges[edge[1]] += [edge[0]]
+
+        segments = []
+        # Form connecting segments
+        for p1 in edges:
+            for p2 in edges[p1]:
+                if p2 > p1:
+                    segments += [Segment(points[p1], end=points[p2])]
+
+        return segments+rooms
 
 
