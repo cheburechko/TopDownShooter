@@ -189,6 +189,25 @@ class Segment(Shape):
     def encloses_point(self, point):
         return False
 
+    def intersect(self, segment):
+        a = (segment.pos - self.pos).cross(self.vector)
+        b = self.vector.cross(segment.vector)
+        if a == 0 and b == 0:
+            t0 = (segment.pos - self.pos).dot(self.vector) / self.vector.get_length_sqrd()
+            t1 = t0 + self.vector.dot(segment.vector) / self.vector.get_length_sqrd()
+            if self.vector.dot(segment.vector) < 0:
+                tb = t0
+                t0 = t1
+                t1 = tb
+            left = max(0, t0)
+            right = min(1, t1)
+            if t1 > 0 & t0 < 1:
+                return Segment(self.pos + left*self.vector, end=self.pos + right*self.vector)
+        elif b != 0 and 0 <= a/b <= 1:
+            return segment.pos + a/b*segment.vector
+        else:
+            return None
+
     def serialize(self):
         return struct.pack(self.SER_FMT, self.pos.x, self.pos.y, self.end.x, self.end.y)
 
@@ -208,6 +227,7 @@ class Wireframe(Shape):
     SER_SIZE = 16
     SER_POINT_FMT = "ff"
     SER_POINT_SIZE = 8
+
     def __init__(self, pos, angle, points):
         Shape.__init__(self, pos, angle)
         self.segments = []
@@ -223,10 +243,7 @@ class Wireframe(Shape):
         return pygame.draw.lines(surface, color, True, [camera.transform(s.pos) for s in self])
 
     def bake_sprite(self):
-
-        surface = pygame.Surface([self.radius*2, self.radius*2])
-        surface.set_alpha(0)
-        self.draw(surface, Camera(surface.get_rect(), 0, 1), (0, 0, 0))
+        pass
 
     def encloses_point(self, point):
         line = Segment((-(2**32), point[1]), end=(point[0], point[1]))
@@ -244,7 +261,7 @@ class Wireframe(Shape):
         points = []
         for i in range(data[3]):
             points += [Vec2d(struct.unpack(cls.SER_POINT_FMT,
-                                          ser[cls.SER_SIZE+i*cls.SER_POINT_SIZE:cls.SER_SIZE+(
+                                           ser[cls.SER_SIZE+i*cls.SER_POINT_SIZE:cls.SER_SIZE+(
                                               i+1)*cls.SER_POINT_SIZE]))]
         return Wireframe(Vec2d(data[0], data[1]), data[2], points)
 

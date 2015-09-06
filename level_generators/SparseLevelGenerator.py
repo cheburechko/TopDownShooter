@@ -3,15 +3,17 @@ __author__ = 'thepunchy'
 from libs.Vec2D import Vec2d
 from libs.Delaunay2d import Delaunay2d
 import random
+from EncircledRoomGenerator import EncircledRoomGenerator
 
 from geometry_shortcut import *
 
 class SparseLevelGenerator(object):
     def __init__(self):
-        self.area = None
-        self.roomNumber = None
-        self.minRoomSize = None
+        self.area = ((0, 0), (200, 200))
+        self.roomNumber = 10
+        self.minRoomSize = 10
         self.points = []
+        self.roomGenerator = EncircledRoomGenerator()
 
     def generate_random_point(self):
         while True:
@@ -62,13 +64,13 @@ class SparseLevelGenerator(object):
             maxSize[edge[0]] = min(maxSize[edge[0]], d - self.minRoomSize)
             maxSize[edge[1]] = min(maxSize[edge[1]], d - self.minRoomSize)
 
-        rooms = []
+        circles = []
         for i in range(len(points)):
             roomSizes[i] = random.uniform(self.minRoomSize, maxSize[i])
             for j in edges[i]:
                 maxSize[j] = min(maxSize[j],
                                  points[i].get_distance(points[j]) - roomSizes[i])
-            rooms += [Circle(points[i], 0, roomSizes[i])]
+            circles += [Circle(points[i], 0, roomSizes[i])]
 
         old_edges = edges
         edges = {}
@@ -77,7 +79,7 @@ class SparseLevelGenerator(object):
             edges[p1] = []
             for p2 in old_edges[p1]:
                 segment = Segment(points[p1], end=points[p2])
-                if len(segment.get_collisions(rooms)) == 2:
+                if len(segment.get_collisions(circles)) == 2:
                     edges[p1] += [p2]
 
         #Reduce number of edges
@@ -113,6 +115,10 @@ class SparseLevelGenerator(object):
                 if p2 > p1:
                     segments += [Segment(points[p1], end=points[p2])]
 
-        return segments+rooms
+        rooms = []
+        for circle in circles:
+            rooms += [self.roomGenerator.generate(circle)]
+
+        return segments+circles+rooms
 
 
