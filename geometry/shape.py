@@ -103,6 +103,9 @@ class Shape:
     def encloses_point(self, point):
         return False
 
+    def encloses_shape(self, shape):
+        return not self.hit_test(shape) & self.encloses_point(shape.pos)
+
     def draw(self, surface, camera, color):
         return pygame.Rect(0, 0, 0, 0)
 
@@ -226,7 +229,7 @@ class Wireframe(Shape):
         self.draw(surface, Camera(surface.get_rect(), 0, 1), (0, 0, 0))
 
     def encloses_point(self, point):
-        line = Segment((-(2**32), point[1]), (point[0], point[1]))
+        line = Segment((-(2**32), point[1]), end=(point[0], point[1]))
         return len(line.get_collisions([s for s in self])) % 2 == 1
 
     def serialize(self):
