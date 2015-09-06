@@ -1,7 +1,7 @@
 import struct, math
 from libs.Vec2D import Vec2d
 
-class GameObject():
+class GameObject(object):
 
     ID = 0
     STATE_FMT = "Ifffff"

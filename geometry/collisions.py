@@ -63,3 +63,5 @@ def collide_wireframe_wireframe(wireframe1, wireframe2):
             if collide_segment_segment(segment1, segment2):
                 return True
     return False
+
+

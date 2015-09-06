@@ -100,6 +100,9 @@ class Shape:
             self.rotate(angle=old_angle)
         return collisions
 
+    def encloses_point(self, point):
+        return False
+
     def draw(self, surface, camera, color):
         return pygame.Rect(0, 0, 0, 0)
 
@@ -130,6 +133,9 @@ class Circle(Shape):
 
     def serialize(self):
         return struct.pack(self.SER_FMT, self.pos.x, self.pos.y, self.angle, self.radius)
+
+    def encloses_point(self, point):
+        return self.pos.get_distance(point) < self.radius
 
     @classmethod
     def deserialize(cls, ser):
@@ -177,6 +183,9 @@ class Segment(Shape):
         surface.fill(0)
         return surface
 
+    def encloses_point(self, point):
+        return False
+
     def serialize(self):
         return struct.pack(self.SER_FMT, self.pos.x, self.pos.y, self.end.x, self.end.y)
 
@@ -215,6 +224,10 @@ class Wireframe(Shape):
         surface = pygame.Surface([self.radius*2, self.radius*2])
         surface.set_alpha(0)
         self.draw(surface, Camera(surface.get_rect(), 0, 1), (0, 0, 0))
+
+    def encloses_point(self, point):
+        line = Segment((-(2**32), point[1]), (point[0], point[1]))
+        return len(line.get_collisions([s for s in self])) % 2 == 1
 
     def serialize(self):
         head = struct.pack(self.SER_FMT, self.pos.x, self.pos.y, self.angle, len(self.segments))
