@@ -106,6 +106,11 @@ class Shape:
     def encloses_shape(self, shape):
         return not self.hit_test(shape) & self.encloses_point(shape.pos)
 
+    def hit_test_with_interior(self, shape):
+        return self.hit_test(shape) | \
+               self.encloses_point(shape.pos) | \
+               shape.encloses_point(self.pos)
+
     def draw(self, surface, camera, color):
         return pygame.Rect(0, 0, 0, 0)
 
@@ -190,6 +195,8 @@ class Segment(Shape):
         return False
 
     def intersect(self, segment):
+        if segment.vector.get_length() == 0 or self.vector.get_length() == 0:
+            return None
         a = (segment.pos - self.pos).cross(self.vector)
         b = self.vector.cross(segment.vector)
         if a == 0 and b == 0:
@@ -201,10 +208,15 @@ class Segment(Shape):
                 t1 = tb
             left = max(0, t0)
             right = min(1, t1)
-            if t1 > 0 & t0 < 1:
+            if t1 > 0 and t0 < 1:
                 return Segment(self.pos + left*self.vector, end=self.pos + right*self.vector)
-        elif b != 0 and 0 <= a/b <= 1:
-            return segment.pos + a/b*segment.vector
+        elif b != 0:
+            t = (segment.pos - self.pos).cross(segment.vector) / b
+            u = a/b
+            if 0 <= t <= 1 and 0 <= u <= 1:
+                return segment.pos + u*segment.vector
+            else:
+                return None
         else:
             return None
 
@@ -219,6 +231,9 @@ class Segment(Shape):
     @classmethod
     def serialized_size(cls, data):
         return cls.SER_SIZE
+
+    def __repr__(self):
+        return "Segment(%s, %s)" % (self.pos, self.end)
 
 
 class Wireframe(Shape):
@@ -248,6 +263,14 @@ class Wireframe(Shape):
     def encloses_point(self, point):
         line = Segment((-(2**32), point[1]), end=(point[0], point[1]))
         return len(line.get_collisions([s for s in self])) % 2 == 1
+
+    def intersect_segment(self, segment):
+        result = []
+        for s in self:
+            buf = s.intersect(segment)
+            if buf is not None:
+                result += [buf]
+        return result
 
     def serialize(self):
         head = struct.pack(self.SER_FMT, self.pos.x, self.pos.y, self.angle, len(self.segments))
