@@ -18,6 +18,11 @@ s3 = Segment((0, 0), end=(5, 0))
 s4 = Segment((2, 0), end=(3, 4))
 s5 = Segment((0, 0), end=(0, 2))
 
+s6 = Segment((10, 0), end=(10, 1))
+s7 = Segment((10, 0), end=(10, -1))
+s8 = Segment((10, 0), end=(9, 0))
+s9 = Segment((10, 0), end=(11, 0))
+
 print s1.intersect(s2)
 print s2.intersect(s1)
 
@@ -36,7 +41,9 @@ w8.pos += Vec2d(-3, 0)
 w9 = WireframeMerger().merge_exterior(w5, w6)
 w9.pos += Vec2d(0, -3)
 
-shapes = [c1, c2, c3, s1, s2, s3, s4, s5, w1, w2, w4, w5, w6, w7, w8, w9]
+shapes = [c1, c2, c3,
+          s1, s2, s3, s4, s5, s6, s7, s8, s9,
+          w1, w2, w4, w5, w6, w7, w8, w9]
 SCREEN_AREA = (800, 600)
 BACKGROUND = (0, 128, 0)
 COLOR = (0, 0, 0)
@@ -60,14 +67,20 @@ print w1.hit_test(c1)
 print c1.hit_test(w1)
 print w1.hit_test(c2)
 print w1.hit_test(s2)
-print not w1.hit_test(s1)
+print w1.hit_test(s1)
 print not w2.hit_test(c3)
-print not s3.hit_test(s4)
-print not s4.hit_test(s3)
+print s3.hit_test(s4)
+print s4.hit_test(s3)
 print w1.encloses_point(s3.pos)
 print w1.encloses_point(s3.end)
 print w1.encloses_point(s5.pos)
 print w1.encloses_point(s5.end)
+print s6.hit_test(s7)
+print s6.hit_test(s8)
+print s6.hit_test(s9)
+print s7.hit_test(s8)
+print s7.hit_test(s9)
+print s8.hit_test(s9)
 
 
 run = True

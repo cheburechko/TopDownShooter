@@ -210,6 +210,10 @@ class Segment(Shape):
             right = min(1, t1)
             if t1 > 0 and t0 < 1:
                 return Segment(self.pos + left*self.vector, end=self.pos + right*self.vector)
+            elif t0 == 1:
+                return self.end
+            elif t1 == 0:
+                return self.pos
         elif b != 0:
             t = (segment.pos - self.pos).cross(segment.vector) / b
             u = a/b

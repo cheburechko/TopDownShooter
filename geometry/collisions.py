@@ -29,16 +29,8 @@ def intersect_circle_segment(circle, segment):
 def collide_circle_segment(circle, segment):
     return len(intersect_circle_segment(circle, segment)) > 0
 
-
-def ccw(vec1, vec2):
-    return vec1.cross(vec2) < 0
-
-
 def collide_segment_segment(segment1, segment2):
-    return ((ccw(segment1.vector, segment2.pos - segment1.pos) !=
-        ccw(segment1.vector, segment2.end - segment1.pos)) and
-        (ccw(segment2.vector, segment1.end - segment2.pos) !=
-         ccw(segment2.vector, segment1.pos - segment2.pos)))
+    return segment1.intersect(segment2) is not None
 
 
 def collide_circle_wireframe(circle, wireframe):
