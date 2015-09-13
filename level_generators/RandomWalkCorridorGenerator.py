@@ -9,7 +9,7 @@ class RandomWalkCorridorGenerator(object):
     def __init__(self):
         self.min_deviation = 0
         self.max_deviation = 30
-        self.min_segments = 1
+        self.min_segments = 2
         # Segments per distance unit
         self.max_curvature = 1. / 100.
         self.min_width = 20
@@ -26,6 +26,16 @@ class RandomWalkCorridorGenerator(object):
         return center
 
     def check_segments(self, segments):
+        # Check turning distance
+        start_diff_vec = segments[1].pos - segments[0].pos
+        projectionOn0 = start_diff_vec.projection(segments[0].vector)
+        projectionOn1 = (-start_diff_vec).projection(segments[1].vector)
+        if projectionOn0.dot(start_diff_vec) > 0 and \
+                        (start_diff_vec - projectionOn0).get_length() < self.min_width:
+            return False
+        if projectionOn1.dot(-start_diff_vec) > 0 and \
+                        (-start_diff_vec - projectionOn1).get_length() < self.min_width:
+            return False
         for shape in self.solids + reduce(lambda x,y: x+y, self.segments, []):
             if shape == self.origin or shape == self.destination:
                 continue
@@ -47,17 +57,50 @@ class RandomWalkCorridorGenerator(object):
         return [Segment(self.last_points[0], end=p1),
                 Segment(self.last_points[1], end=p2)]
 
-    def generate_segment(self, debug=None):
+    def get_allowed_angles(self, distance):
         direction =  self.destination.pos - self.cur_pos
-        distance = random.uniform(self.distance*self.min_segment_size,
-                                  self.distance*self.max_segment_size)
+        angle = direction.get_angle()
+
         a = distance*(distance+math.sin(math.radians(self.max_deviation))) + direction.get_length_sqrd()
         b = direction.get_length() * (2*distance + math.sin(math.radians(self.max_deviation)))
         max_deviation = 90 - math.degrees(math.acos(b/a))
 
-        next_direction = direction.rotated(random.uniform(-max_deviation, max_deviation)).normalized()
-        print max_deviation
-        print direction.get_angle() - next_direction.get_angle()
+        left_bound = [angle - max_deviation]
+        right_bound = [angle + max_deviation]
+
+        if len(self.last_pos) > 0:
+            old_direction = self.cur_pos - self.last_pos[-1]
+            diff = direction.get_angle_between(old_direction)
+            print angle
+            print old_direction.get_angle()
+            print diff
+
+            # This is to ensure there is enough width on turning
+            d = self.last_points[0].get_distance(self.last_points[1])
+            delta = min(self.max_deviation,
+                        math.degrees(math.acos(self.min_width / d)))
+
+            left_bound += [angle + diff - delta]
+            right_bound += [angle + diff + delta]
+
+
+        print left_bound
+        print right_bound
+        return [max(left_bound), min(right_bound)]
+
+    def generate_segment(self, debug=None):
+
+        distance = random.uniform(self.distance*self.min_segment_size,
+                                  self.distance*self.max_segment_size)
+
+        angles = self.get_allowed_angles(distance)
+        if angles[1] < angles[0]:
+            return False
+        print angles
+        angle = random.uniform(angles[0], angles[1])
+        next_direction = Vec2d(math.cos(math.radians(angle)),
+                               math.sin(math.radians(angle)))
+
         next_pos = self.cur_pos + next_direction*distance
         offset = next_direction.rotated(90).normalized()
 
