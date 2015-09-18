@@ -2,8 +2,7 @@ __author__ = 'thepunchy'
 import random
 from geometry_shortcut import *
 from libs.Vec2D import Vec2d
-from pygame.locals import *
-import pygame
+from GenerationDebugger import GenerationDebugger
 
 class RandomWalkCorridorGenerator(object):
     def __init__(self):
@@ -152,16 +151,9 @@ class RandomWalkCorridorGenerator(object):
 
     def debug_output(self, debug, additional_shapes, message=""):
         if debug is not None:
-            debug['screen'].fill(debug['BACKGROUND'])
-            for shape in self.solids + reduce(lambda x,y: x+y, self.segments, []) + additional_shapes:
-                shape.draw(debug['screen'], debug['camera'], debug['COLOR'])
-            pygame.display.flip()
-            print message
-            run = True
-            while run:
-                for event in pygame.event.get():
-                    if event.type == MOUSEBUTTONDOWN:
-                        run = False
+            debug.debug_output(
+                self.solids + reduce(lambda x,y: x+y, self.segments, []) + additional_shapes,
+                message)
 
     def get_wireframe(self):
         points = [None] * (self.total_segments * 2 + 2)

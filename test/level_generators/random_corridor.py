@@ -2,10 +2,10 @@ __author__ = 'thepunchy'
 
 from level_generators.RandomWalkCorridorGenerator import RandomWalkCorridorGenerator
 from geometry_shortcut import *
-from libs.Vec2D import Vec2d
 import registry, pygame
 from pygame.locals import *
 from graphics.Camera import Camera
+from level_generators.GenerationDebugger import GenerationDebugger
 
 SCREEN_AREA = (800, 600)
 BACKGROUND = (0, 128, 0)
@@ -24,8 +24,7 @@ screen = pygame.display.set_mode(SCREEN_AREA, DOUBLEBUF)
 screen.fill(BACKGROUND)
 camera = Camera(screen.get_rect(), 0, 1)
 
-debug = {"screen" : screen, "camera" : camera,
-         "COLOR": COLOR, "BACKGROUND": BACKGROUND}
+debug = GenerationDebugger(screen, BACKGROUND, camera, COLOR)
 
 w = gen.generate_corridor(c1, c2, rooms, debug)
 

@@ -4,6 +4,9 @@ from libs.Vec2D import Vec2d
 from libs.Delaunay2d import Delaunay2d
 import random
 from EncircledRoomGenerator import EncircledRoomGenerator
+from RandomWalkCorridorGenerator import RandomWalkCorridorGenerator
+from geometry.merger import WireframeMerger
+from GenerationDebugger import GenerationDebugger
 
 from geometry_shortcut import *
 
@@ -27,7 +30,8 @@ class SparseLevelGenerator(object):
             if not repick:
                 return p
 
-    def generate(self):
+
+    def generate(self, debug=GenerationDebugger()):
         self.points = []
         for i in range(self.roomNumber):
             self.points += [self.generate_random_point()]
@@ -108,17 +112,40 @@ class SparseLevelGenerator(object):
                 edges[edge[0]] += [edge[1]]
                 edges[edge[1]] += [edge[0]]
 
-        segments = []
-        # Form connecting segments
-        for p1 in edges:
-            for p2 in edges[p1]:
-                if p2 > p1:
-                    segments += [Segment(points[p1], end=points[p2])]
 
         rooms = []
         for circle in circles:
             rooms += [self.roomGenerator.generate(circle)]
 
-        return segments+circles+rooms
+        # Add corridors
+        corridors = {i: dict() for i in edges}
+        segments = []
+        corridor_generator = RandomWalkCorridorGenerator()
+        for p1 in edges:
+            for p2 in edges[p1]:
+                if p2 > p1:
+                    corridors[p1][p2] = corridor_generator.generate_corridor(
+                        rooms[p1], rooms[p2], rooms,
+                    )
+
+        # Merge the shapes in a single wireframe
+        q = [edges.keys()[0]]
+        level = rooms[q[0]]
+        merger = WireframeMerger()
+        i = 0
+        debug.debug_output(level)
+        while i < len(q):
+            for p in corridors[q[i]]:
+                debug.debug_output([level, corridors[q[i]][p], rooms[p]])
+                level = merger.merge_exterior(level, corridors[q[i]][p])
+                debug.debug_output([level, rooms[p]])
+                if p not in q:
+                    q += [p]
+                    level = merger.merge_exterior(level, rooms[p])
+                debug.debug_output([level])
+
+            i += 1
+
+        return circles+[level]
 
 

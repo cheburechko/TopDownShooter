@@ -5,6 +5,7 @@ from libs.Vec2D import Vec2d
 import registry, pygame
 from pygame.locals import *
 from graphics.Camera import Camera
+from level_generators.GenerationDebugger import GenerationDebugger
 
 SCREEN_AREA = (800, 600)
 BACKGROUND = (0, 128, 0)
@@ -17,10 +18,12 @@ screen = pygame.display.set_mode(SCREEN_AREA, DOUBLEBUF)
 screen.fill(BACKGROUND)
 camera = Camera(screen.get_rect(), 0, 1)
 
+debug = GenerationDebugger(screen, BACKGROUND, camera, COLOR)
+
 gen.minRoomSize = 100
 gen.roomNumber = 10
 
-edges = gen.generate()
+edges = gen.generate(debug)
 for shape in edges:
     shape.draw(screen, camera, COLOR)
 
@@ -35,7 +38,7 @@ while run:
             break
         elif event.type == MOUSEBUTTONDOWN:
             screen.fill(BACKGROUND)
-            shapes = gen.generate()
+            shapes = gen.generate(debug)
             for shape in shapes:
                 shape.draw(screen, camera, COLOR)
             pygame.display.flip()
