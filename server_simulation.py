@@ -4,6 +4,7 @@ from messages_shortcut import *
 from metadata import PlayerEntry
 from geometry_shortcut import *
 from libs.Vec2D import Vec2d
+from level_generators.SparseLevelGenerator import SparseLevelGenerator
 
 class ServerSimulation():
     """
@@ -14,7 +15,7 @@ class ServerSimulation():
     SCREEN_AREA = (1024, 768)
     BOUNDS = (0, 1024, 0, 768)
     TIME_SCALE = 0.001
-    MAX_MOBS = 5
+    MAX_MOBS = 0
     MOB_RESPAWN_PERIOD = 3000
     PLAYER_RESPAWN_PERIOD = 3000
     PLAYER_COST = 5
@@ -40,14 +41,28 @@ class ServerSimulation():
         self.playerEntries = {}
 
         self.verbose = True
+        
+        self.levelGenerator = SparseLevelGenerator()
+        self.levelGenerator.corridorGenerator.min_width = 55
+        self.levelGenerator.corridorGenerator.max_width = 100
+        self.levelGenerator.corridorGenerator.max_curvature = 1. / 200.
+        self.levelGenerator.roomGenerator.minVertices = 4
+        self.levelGenerator.roomGenerator.maxVertices = 10
+        self.levelGenerator.minRoomSize = 100
+        self.levelGenerator.roomNumber = 20
+        self.levelGenerator.area = ((0, 0), (2000, 2000))
 
         self.generateLevel()
 
 
     def generateLevel(self):
-        level = Walls(Wireframe((0,0), 0,
-                                  [(0,0), (0,self.SCREEN_AREA[1]),
-                                   self.SCREEN_AREA, (self.SCREEN_AREA[0], 0)]))
+        # level = Walls(Wireframe((0,0), 0,
+        #                           [(0,0), (0,self.SCREEN_AREA[1]),
+        #                            self.SCREEN_AREA, (self.SCREEN_AREA[0], 0)]))
+
+        level_shape = self.levelGenerator.generate()
+        level = Walls(level_shape)
+        print "Done."
         self.level[level.id] = level
         self.solidWorld[level.id] = level.shape
 
@@ -63,12 +78,15 @@ class ServerSimulation():
             del self.solidWorld[obj.id]
 
     def getRandomPos(self):
-        return \
-            (random.random()*(self.BOUNDS[1]-self.BOUNDS[0]) + self.BOUNDS[0],
-             random.random()*(self.BOUNDS[3] - self.BOUNDS[2]) + self.BOUNDS[2])
+        while True:
+            pos = (random.uniform(self.levelGenerator.area[0][0], self.levelGenerator.area[1][1]),
+             (random.uniform(self.levelGenerator.area[0][1], self.levelGenerator.area[1][1])))
+            for room in self.level:
+                if self.level[room].shape.encloses_point(pos):
+                    return pos
 
     def placeRandom(self, obj):
-        while len(obj.move(position=self.getRandomPos())) != 0:
+        while obj.move(position=self.getRandomPos()):
             pass
 
     def addPlayer(self, msg):

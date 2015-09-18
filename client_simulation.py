@@ -281,7 +281,7 @@ class LocalSimulation():
 
 class InputControl():
 
-    FRAMES_PER_SECOND = 60
+    FRAMES_PER_SECOND = 20
 
     def __init__(self, client, sim):
         self.firing = False

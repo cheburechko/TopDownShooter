@@ -184,7 +184,7 @@ class Segment(Shape):
         self.vector.rotate(self.angle - old_angle)
 
     def draw(self, surface, camera, color):
-       return pygame.draw.aaline(surface, color, camera.transform(self.pos), camera.transform(self.end))
+       return pygame.draw.line(surface, color, camera.transform(self.pos), camera.transform(self.end))
 
     def bake_sprite(self):
         surface = pygame.Surface([int(self.vector.get_length()), 1])

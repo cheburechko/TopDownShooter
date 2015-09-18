@@ -33,12 +33,15 @@ class SparseLevelGenerator(object):
 
 
     def generate(self, debug=GenerationDebugger()):
+        print "Sparse Level generation started..."
         self.points = []
         for i in range(self.roomNumber):
             self.points += [self.generate_random_point()]
+        print "Performing Delaunay triangulation..."
         delaunay = Delaunay2d(self.points)
 
         segments = []
+        print "Cleaning edges..."
         points = delaunay.points
         maxSize = [2**32] * len(points)
         roomSizes = [0] * len(points)
@@ -69,6 +72,7 @@ class SparseLevelGenerator(object):
             maxSize[edge[0]] = min(maxSize[edge[0]], d - self.minRoomSize)
             maxSize[edge[1]] = min(maxSize[edge[1]], d - self.minRoomSize)
 
+        print "Allocating room space..."
         circles = []
         for i in range(len(points)):
             roomSizes[i] = random.uniform(self.minRoomSize, maxSize[i])
@@ -80,6 +84,7 @@ class SparseLevelGenerator(object):
         old_edges = edges
         edges = {}
 
+        print "Removing edges colliding with room spaces..."
         for p1 in old_edges:
             edges[p1] = []
             for p2 in old_edges[p1]:
@@ -88,6 +93,7 @@ class SparseLevelGenerator(object):
                     edges[p1] += [p2]
 
         #Reduce number of edges
+        print "Reducing number of edges..."
         connected = True
         while connected:
             random_point = random.randint(0, len(points)-1)
@@ -114,11 +120,13 @@ class SparseLevelGenerator(object):
                 edges[edge[1]] += [edge[0]]
 
 
+        print "Generating rooms..."
         rooms = []
         for circle in circles:
             rooms += [self.roomGenerator.generate(circle)]
 
         # Add corridors
+        print "Generating corridors..."
         corridors = {i: dict() for i in edges}
         for p1 in edges:
             for p2 in edges[p1]:
@@ -128,6 +136,7 @@ class SparseLevelGenerator(object):
                     )
 
         # Merge the shapes in a single wireframe
+        print "Merging rooms and corrdors..."
         q = [edges.keys()[0]]
         level = rooms[q[0]]
         merger = WireframeMerger()
@@ -144,7 +153,7 @@ class SparseLevelGenerator(object):
                 debug.debug_output([level])
 
             i += 1
-
-        return circles+[level]
+        print "Done."
+        return level
 
 

@@ -8,7 +8,7 @@ class RandomWalkCorridorGenerator(object):
     def __init__(self):
         self.min_deviation = 0
         self.max_deviation = 30
-        self.min_segments = 2
+        self.min_segments = 1
         # Segments per distance unit
         self.max_curvature = 1. / 100.
         self.min_width = 20
@@ -45,8 +45,6 @@ class RandomWalkCorridorGenerator(object):
                         continue
                     elif shape == self.segments[-1][1] and len(collisions) == 1:
                         continue
-                print segments
-                print shape
                 return False
         return True
 
@@ -70,9 +68,6 @@ class RandomWalkCorridorGenerator(object):
         if len(self.last_pos) > 0:
             old_direction = self.cur_pos - self.last_pos[-1]
             diff = direction.get_angle_between(old_direction)
-            print angle
-            print old_direction.get_angle()
-            print diff
 
             # This is to ensure there is enough width on turning
             d = self.last_points[0].get_distance(self.last_points[1])
@@ -82,9 +77,6 @@ class RandomWalkCorridorGenerator(object):
             left_bound += [angle + diff - delta]
             right_bound += [angle + diff + delta]
 
-
-        print left_bound
-        print right_bound
         return [max(left_bound), min(right_bound)]
 
     def generate_segment(self, debug=None):
@@ -95,7 +87,7 @@ class RandomWalkCorridorGenerator(object):
         angles = self.get_allowed_angles(distance)
         if angles[1] < angles[0]:
             return False
-        print angles
+
         angle = random.uniform(angles[0], angles[1])
         next_direction = Vec2d(math.cos(math.radians(angle)),
                                math.sin(math.radians(angle)))
@@ -136,7 +128,7 @@ class RandomWalkCorridorGenerator(object):
 
         segments = self.make_segments(next_pos, offset)
         retries = self.retries
-        print segments
+
         while not self.check_segments(segments) and retries > 0:
             self.debug_output(debug, segments,
                               "Failed attempt " + str(self.retries - retries))
@@ -181,9 +173,7 @@ class RandomWalkCorridorGenerator(object):
         self.last_points = (self.cur_pos + direction.rotated(90).normalized()*(width/2),
                             self.cur_pos - direction.rotated(90).normalized()*(width/2))
         i = 0
-        print 'Begin:', self.total_segments
         while i < self.total_segments:
-            print i
             self.debug_output(debug, [], "Step " + str(i))
             if i == self.total_segments - 1:
                 if self.final_segment(debug):
