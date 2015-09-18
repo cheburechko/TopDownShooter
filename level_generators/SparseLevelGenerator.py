@@ -17,6 +17,7 @@ class SparseLevelGenerator(object):
         self.minRoomSize = 10
         self.points = []
         self.roomGenerator = EncircledRoomGenerator()
+        self.corridorGenerator = RandomWalkCorridorGenerator()
 
     def generate_random_point(self):
         while True:
@@ -119,12 +120,10 @@ class SparseLevelGenerator(object):
 
         # Add corridors
         corridors = {i: dict() for i in edges}
-        segments = []
-        corridor_generator = RandomWalkCorridorGenerator()
         for p1 in edges:
             for p2 in edges[p1]:
                 if p2 > p1:
-                    corridors[p1][p2] = corridor_generator.generate_corridor(
+                    corridors[p1][p2] = self.corridorGenerator.generate_corridor(
                         rooms[p1], rooms[p2], rooms,
                     )
 

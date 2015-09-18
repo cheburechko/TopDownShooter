@@ -31,18 +31,25 @@ class ServerSimulation():
         self.world[Player.TYPE] = {}
         self.world[Bullet.TYPE] = {}
         self.world[Mob.TYPE] = {}
-        self.world[Walls.TYPE] = {}
+        self.level = {}
         self.solidWorld = {}
         self.respawnQueue = {}
         self.removed = []
+        self.playerAdded = False
 
         self.playerEntries = {}
 
         self.verbose = True
 
-        self.addObject(Walls(Wireframe((0,0), 0,
+        self.generateLevel()
+
+
+    def generateLevel(self):
+        level = Walls(Wireframe((0,0), 0,
                                   [(0,0), (0,self.SCREEN_AREA[1]),
-                                   self.SCREEN_AREA, (self.SCREEN_AREA[0], 0)])))
+                                   self.SCREEN_AREA, (self.SCREEN_AREA[0], 0)]))
+        self.level[level.id] = level
+        self.solidWorld[level.id] = level.shape
 
     def addObject(self, obj):
         self.world[obj.type][obj.id] = obj
@@ -124,12 +131,6 @@ class ServerSimulation():
 
             for bullet in self.world[Bullet.TYPE].values():
                 bullet.move(delta*self.TIME_SCALE)
-                if (bullet.pos.x < self.BOUNDS[0]) or \
-                    (bullet.pos.x > self.BOUNDS[1]) or \
-                    (bullet.pos.y < self.BOUNDS[2]) or \
-                    (bullet.pos.y > self.BOUNDS[3]):
-                        bullet.alive = False
-                        self.removeObject(bullet)
 
             for player in self.world[Player.TYPE].values():
                 if not player.alive:
@@ -161,6 +162,12 @@ class ServerSimulation():
                         self.removeObject(mob)
                         break
 
+            for room in self.level.values():
+                for bullet in room.collisions(self.world[Bullet.TYPE].values()):
+                    bullet.alive = False
+                    self.removeObject(bullet)
+
+
     def getWorldState(self):
         state = ListMessage()
         state.timestamp = self.timestamp
@@ -170,6 +177,13 @@ class ServerSimulation():
         for obj in self.removed:
             state.add(RemoveMessage(obj.type, obj.id))
         self.removed = []
+        return state
+
+    def getLevelState(self):
+        state = ListMessage()
+        state.timestamp = self.timestamp
+        for obj in self.level.values():
+            state.add(EntityMessage(obj))
         return state
 
     def getMeta(self):

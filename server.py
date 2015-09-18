@@ -18,7 +18,7 @@ class Server():
         thread.start_new_thread(self.server.keepAlive, ())
 
         self.sim = ServerSimulation()
-        self.sim.verbose = True
+        self.sim.verbose = False
         thread.start_new_thread(self.sim.simulate, ())
 
         self.players = {}
@@ -58,6 +58,8 @@ class Server():
             if msg.type == Message.CONNECT:
                 self.players[udpMsg.connID] = self.sim.addPlayer(msg)
                 self.server.send(ConnectMessage(str(self.players[udpMsg.connID])).toString(),
+                                 udpMsg.connID)
+                self.server.send(self.sim.getLevelState().toString(),
                                  udpMsg.connID)
             elif (pygame.time.get_ticks() - msg.timestamp > self.DROP_PERIOD):
                 continue
