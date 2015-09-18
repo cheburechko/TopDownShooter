@@ -265,14 +265,20 @@ class Wireframe(Shape):
         pass
 
     def encloses_point(self, point):
-        line = Segment((-(2**32), point[1]), end=(point[0], point[1]))
-        return len(line.get_collisions([s for s in self])) % 2 == 1
+        vector = ((self[0].pos + self[1].pos + self[1].end) / 3 - point) * 2**32
+        line = Segment(point, vector=vector)
+        return len(self.intersect_segment(line)) % 2 == 1
 
     def intersect_segment(self, segment):
         result = []
         for s in self:
             buf = s.intersect(segment)
             if buf is not None:
+                if len(result) > 0 and \
+                    isinstance(buf, Vec2d) and \
+                    isinstance(result[-1], Vec2d) and \
+                    buf in result:
+                    continue
                 result += [buf]
         return result
 

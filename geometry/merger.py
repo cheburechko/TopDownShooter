@@ -55,6 +55,7 @@ class WireframeMerger(object):
 
     def __sort_segments(self, segments):
         result = [segments[0]]
+        del segments[0]
         i = 0
         while len(segments) > 0:
             found = False

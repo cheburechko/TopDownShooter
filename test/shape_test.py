@@ -30,16 +30,16 @@ w1 = Wireframe((3, 1.5), 0, [(-3, -3.5), (3, -3.5), (3, 3.5), (-3, 3.5)])
 w2 = Wireframe((9, 2), -90, [(-2, 2), (2, 2), (0, -4)])
 
 w4 = Wireframe((0, 0), 0, [(-1, -1), (-1, 1), (1, 1), (1, -1)])
-pts = [(0, 0.5), (0, -0.5), (2, -0.5), (2, 0.5)]
-w5 = Wireframe((0, 0), 0, pts)
+pts = [(-1, 0), (1, -0.5), (1, 0.5)]
+w5 = Wireframe((1, 0), 0, pts)
 print list(reversed(pts))
-w6 = Wireframe((0, 0), 0, list(reversed(pts))[1:])
+w6 = Wireframe((-1, 0), 0, pts)
 w7 = WireframeMerger().merge_exterior(w4, w5)
-w7.pos += Vec2d(3, 0)
+w7.pos += Vec2d(5, -5)
 w8 = WireframeMerger().merge_exterior(w4, w6)
-w8.pos += Vec2d(-3, 0)
+w8.pos += Vec2d(-5, -5)
 w9 = WireframeMerger().merge_exterior(w5, w6)
-w9.pos += Vec2d(0, -3)
+w9.pos += Vec2d(0, -5)
 
 shapes = [c1, c2, c3,
           s1, s2, s3, s4, s5, s6, s7, s8, s9,

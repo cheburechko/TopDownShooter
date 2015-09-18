@@ -1,6 +1,7 @@
 ################## http://www.pygame.org/wiki/2DVectorClass ##################
 import operator
 import math
+from float_cmp import feq
 
 class Vec2d(object):
     """2d vector class, supports vector and scalar operators,
@@ -42,15 +43,12 @@ class Vec2d(object):
     # Comparison
     def __eq__(self, other):
         if hasattr(other, "__getitem__") and len(other) == 2:
-            return self.x == other[0] and self.y == other[1]
+            return feq(self.x, other[0]) and feq(self.y, other[1])
         else:
             return False
 
     def __ne__(self, other):
-        if hasattr(other, "__getitem__") and len(other) == 2:
-            return self.x != other[0] or self.y != other[1]
-        else:
-            return True
+        return not self.__eq__(other)
 
     def __nonzero__(self):
         return bool(self.x or self.y)
