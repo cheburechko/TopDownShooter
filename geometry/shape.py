@@ -247,19 +247,23 @@ class Wireframe(Shape):
     SER_POINT_FMT = "ff"
     SER_POINT_SIZE = 8
 
-    def __init__(self, pos, angle, points):
+    def __init__(self, pos, angle, points=None, segments=None):
         Shape.__init__(self, pos, angle)
-        self.segments = []
-        points += [points[0]]
-        for i in range(len(points)-1):
-            self.segments += [Segment(points[i], end=points[i+1])]
+        if segments is not None:
+            self.segments = segments
+        else:
+            self.segments = []
+            points += [points[0]]
+            for i in range(len(points)-1):
+                self.segments += [Segment(points[i], end=points[i+1])]
 
     def __getitem__(self, item):
         s = self.segments[item]
         return Segment(s.pos.rotated(self.angle) + self.pos, vector = s.vector.rotated(self.angle))
 
     def draw(self, surface, camera, color):
-        return pygame.draw.lines(surface, color, True, [camera.transform(s.pos) for s in self])
+        for segment in self:
+            segment.draw(surface, camera, color)
 
     def bake_sprite(self):
         pass
@@ -286,19 +290,24 @@ class Wireframe(Shape):
         head = struct.pack(self.SER_FMT, self.pos.x, self.pos.y, self.angle, len(self.segments))
         for s in self.segments:
             head += struct.pack(self.SER_POINT_FMT, s.pos.x, s.pos.y)
+            head += struct.pack(self.SER_POINT_FMT, s.end.x, s.end.y)
         return head
 
     @classmethod
     def deserialize(cls, ser):
         data = struct.unpack(cls.SER_FMT, ser[:cls.SER_SIZE])
-        points = []
+        segments = []
         for i in range(data[3]):
-            points += [Vec2d(struct.unpack(cls.SER_POINT_FMT,
-                                           ser[cls.SER_SIZE+i*cls.SER_POINT_SIZE:cls.SER_SIZE+(
-                                              i+1)*cls.SER_POINT_SIZE]))]
-        return Wireframe(Vec2d(data[0], data[1]), data[2], points)
+            point1 = Vec2d(struct.unpack(cls.SER_POINT_FMT,
+                                           ser[cls.SER_SIZE+i*2*cls.SER_POINT_SIZE:cls.SER_SIZE+(
+                                              2*i+1)*cls.SER_POINT_SIZE]))
+            point2 = Vec2d(struct.unpack(cls.SER_POINT_FMT,
+                                           ser[cls.SER_SIZE+(2*i+1)*cls.SER_POINT_SIZE:cls.SER_SIZE+(
+                                              i+1)*2*cls.SER_POINT_SIZE]))
+            segments += [Segment(point1, end=point2)]
+        return Wireframe(Vec2d(data[0], data[1]), data[2], segments=segments)
 
     @classmethod
     def serialized_size(cls, data):
         size = struct.unpack("I", data[cls.SER_SIZE-4:cls.SER_SIZE])
-        return cls.SER_SIZE + cls.SER_POINT_SIZE*size[0]
+        return cls.SER_SIZE + cls.SER_POINT_SIZE*size[0]*2
