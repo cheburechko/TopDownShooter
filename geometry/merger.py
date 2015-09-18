@@ -12,7 +12,7 @@ class WireframeMerger(object):
             self.__add_exterior_points(shape2, shape1)
         segments = self.__sort_segments(segments)
         pos = self.__make_center(segments)
-        return Wireframe(pos, 0, self.__get_points(segments, pos))
+        return Wireframe(pos, 0, segments=self.__center_segments(segments, pos))
 
     def __is_segment_inside(self, p1, p2, shape):
         return shape.encloses_point((p1+p2)/2)
@@ -71,7 +71,8 @@ class WireframeMerger(object):
                     break
             if not found:
                 #raise "Segments can't be sorted"
-                break
+                result += [segments[0]]
+                del segments[0]
             else:
                 del segments[j]
             i += 1
@@ -83,8 +84,8 @@ class WireframeMerger(object):
             v += s.pos
         return v / len(segments)
 
-    def __get_points(self, segments, center):
+    def __center_segments(self, segments, center):
         result = []
         for s in segments:
-            result += [s.pos - center]
+            result += [Segment(s.pos - center, vector=s.vector)]
         return result

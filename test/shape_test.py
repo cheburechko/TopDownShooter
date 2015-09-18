@@ -41,9 +41,16 @@ w8.pos += Vec2d(-5, -5)
 w9 = WireframeMerger().merge_exterior(w5, w6)
 w9.pos += Vec2d(0, -5)
 
+w10 = Wireframe((-7, 0), 0, [(-2, -1), (-1, 1), (1, 1), (2, -1)])
+w11 = Wireframe((-7, -2), 0, [(-1, 2.5), (-0.5, 2.5), (-0.5, 0.5), (0.5, 0.5), (0.5, 2.5),
+                              (1, 2.5), (1, -1), (-1, -1)])
+w12 = WireframeMerger().merge_exterior(w10, w11)
+w12.pos += Vec2d(0, 7)
+
 shapes = [c1, c2, c3,
           s1, s2, s3, s4, s5, s6, s7, s8, s9,
-          w1, w2, w4, w5, w6, w7, w8, w9]
+          w1, w2, w4, w5, w6, w7, w8, w9,
+          w10, w11, w12]
 SCREEN_AREA = (800, 600)
 BACKGROUND = (0, 128, 0)
 COLOR = (0, 0, 0)
