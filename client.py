@@ -11,8 +11,8 @@ class Client():
         self.udpq = Queue.Queue()
         self.sim = LocalSimulation()
         self.client = UDPClient(address, self.udpq)
-        self.client.verbose = True
-        self.sim.verbose = True
+        #self.client.verbose = True
+        #self.sim.verbose = True
         self.ic = InputControl(self.client, self.sim)
 
         thread.start_new_thread(self.client.receive, ())

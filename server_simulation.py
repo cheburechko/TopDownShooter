@@ -6,7 +6,7 @@ from geometry_shortcut import *
 from libs.Vec2D import Vec2d
 from level_generators.SparseLevelGenerator import SparseLevelGenerator
 
-class ServerSimulation():
+class ServerSimulation(object):
     """
     This class simulates all of the game events
     """
@@ -21,7 +21,7 @@ class ServerSimulation():
     PLAYER_COST = 5
     MOB_COST = 1
 
-    def __init__(self):
+    def __init__(self, level=None):
         self.alive = True
 
         self.clock = pygame.time.Clock()
@@ -52,19 +52,23 @@ class ServerSimulation():
         self.levelGenerator.roomNumber = 20
         self.levelGenerator.area = ((0, 0), (2000, 2000))
 
-        self.generateLevel()
+        self.generateLevel(level)
 
 
-    def generateLevel(self):
+    def generateLevel(self, level=None):
         # level = Walls(Wireframe((0,0), 0,
         #                           [(0,0), (0,self.SCREEN_AREA[1]),
         #                            self.SCREEN_AREA, (self.SCREEN_AREA[0], 0)]))
-
-        level_shape = self.levelGenerator.generate()
-        level = Walls(level_shape)
-        print "Done."
-        self.level[level.id] = level
-        self.solidWorld[level.id] = level.shape
+        if level is None:
+            level_shape = self.levelGenerator.generate()
+            level = Walls(level_shape)
+            self.level[level.id] = level
+            self.solidWorld[level.id] = level.shape
+        else:
+            for msg in level.msgs:
+                entity = GameObject.fromState(msg.state)
+                self.level[entity.id] = entity
+                self.solidWorld[entity.id] = entity.shape
 
     def addObject(self, obj):
         self.world[obj.type][obj.id] = obj

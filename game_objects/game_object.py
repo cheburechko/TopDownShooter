@@ -27,6 +27,8 @@ class GameObject(object):
             self.id = GameObject.getID()
         else:
             self.id = objId
+            if objId > GameObject.ID:
+                GameObject.ID = objId + 1
 
         self.type = objType
         self.alive = True

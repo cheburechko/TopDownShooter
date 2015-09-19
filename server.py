@@ -3,6 +3,7 @@ import Queue, thread, sys
 from server_simulation import ServerSimulation
 from registry import *
 import pygame
+import yappi
 
 class Server():
 
@@ -10,15 +11,20 @@ class Server():
     META_PERIOD = 1000
     DROP_PERIOD = 300
 
-    def __init__(self, address):
+    def __init__(self, address, level=None):
         self.msgQ = Queue.Queue()
         self.server = UDPServer(address, self.msgQ)
-        self.server.verbose = True
+        #self.server.verbose = True
 
         thread.start_new_thread(self.server.serve_forever, ())
-        thread.start_new_thread(self.server.keepAlive, ())
+        #thread.start_new_thread(self.server.keepAlive, ())
 
-        self.sim = ServerSimulation()
+        self.sim = ServerSimulation(level)
+        # Save level
+        f = open("last_server_level.dat", "w")
+        f.write(self.sim.getLevelState().toString())
+        f.close()
+
         self.sim.verbose = False
         thread.start_new_thread(self.sim.simulate, ())
 
@@ -27,6 +33,7 @@ class Server():
         self.lastPing = 0
 
         thread.start_new_thread(self.serve, ())
+
 
     def kill(self):
         self.server.shutdown()
@@ -84,8 +91,26 @@ if __name__ == '__main__':
     if ip == 'any':
         ip = ''
 
-    server = Server((ip, port))
+    # Load level
+    level = None
+    if len(sys.argv) > 3:
+        f = open("last_server_level.dat", "r")
+        level = Message.getMessage(f.read())
+        f.close()
+
+    yappi.start()
+    server = Server((ip, port), level)
     try:
         server.broadcastState()
     except KeyboardInterrupt:
+        print 1
+        yappi.stop()
+        print 2
         server.kill()
+        print 3
+        yappi.get_func_stats().save("server_profile.bin")
+        print 4
+        f = open("server_profile.txt", "w")
+        yappi.get_thread_stats().print_all(f)
+        f.close()
+        print 5
