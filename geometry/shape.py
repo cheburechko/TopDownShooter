@@ -9,7 +9,7 @@ from graphics.Camera import Camera
 class NotShapeClassException(Exception):
     pass
 
-class Shape:
+class Shape(object):
     colliders = {}
     shapes = {}
 
@@ -167,16 +167,31 @@ class Segment(Shape):
         else:
             angle = vector.get_angle()
 
-        self.vector = vector
+        self.__length = vector.get_length()
+        self.__vector = vector
+        self.__end = pos+vector
         Shape.__init__(self, pos, angle)
 
-    def get_end(self):
+    @property
+    def vector(self):
+        return self.__vector
+
+    @vector.setter
+    def vector(self, other):
+        self.__vector = Vec2d(other)
+        self.__length = self.__vector.get_length()
+
+    @property
+    def end(self):
         return self.pos + self.vector
-    
-    def set_end(self, newend):
+
+    @end.setter
+    def end(self, newend):
         self.vector = newend - self.pos
 
-    end = property(get_end, set_end)
+    @property
+    def length(self):
+        return self.__length
 
     def rotate(self, angle=None, vector=None, diff_angle=None, max_rot_speed=None):
         old_angle = self.angle
@@ -195,13 +210,13 @@ class Segment(Shape):
         return False
 
     def intersect(self, segment):
-        if segment.vector.get_length() == 0 or self.vector.get_length() == 0:
+        if segment.length == 0 or self.length == 0:
             return None
         a = (segment.pos - self.pos).cross(self.vector)
         b = self.vector.cross(segment.vector)
         if a == 0 and b == 0:
-            t0 = (segment.pos - self.pos).dot(self.vector) / self.vector.get_length_sqrd()
-            t1 = t0 + self.vector.dot(segment.vector) / self.vector.get_length_sqrd()
+            t0 = (segment.pos - self.pos).dot(self.vector) / self.length ** 2
+            t1 = t0 + self.vector.dot(segment.vector) / self.length ** 2
             if self.vector.dot(segment.vector) < 0:
                 tb = t0
                 t0 = t1
@@ -247,19 +262,37 @@ class Wireframe(Shape):
     SER_POINT_FMT = "ff"
     SER_POINT_SIZE = 8
 
-    def __init__(self, pos, angle, points=None, segments=None):
+    def __init__(self, pos, angle, points=None, segments=None, abs_segments=None):
         Shape.__init__(self, pos, angle)
-        if segments is not None:
-            self.segments = segments
+        if abs_segments is not None:
+            self.segments = abs_segments[:]
+        elif segments is not None:
+            self.segments = []
+            for s in segments:
+                self.segments += [Segment(s.pos + self.pos, end=s.end+self.pos)]
         else:
             self.segments = []
             points += [points[0]]
             for i in range(len(points)-1):
-                self.segments += [Segment(points[i], end=points[i+1])]
+                self.segments += [Segment(points[i]+self.pos,
+                                          end=points[i+1]+self.pos)]
 
     def __getitem__(self, item):
-        s = self.segments[item]
-        return Segment(s.pos.rotated(self.angle) + self.pos, vector = s.vector.rotated(self.angle))
+        return self.segments[item]
+        #return Segment(s.pos.rotated(self.angle) + self.pos, vector = s.vector.rotated(self.angle))
+
+
+    def move(self, **kwargs):
+        for s in self:
+            s.move(**kwargs)
+        Shape.move(self, **kwargs)
+
+    def rotate(self, **kwargs):
+        old_angle = self.angle
+        Shape.rotate(self, **kwargs)
+        for s in self:
+            s.rotate(**kwargs)
+            s.pos = (s.pos - self.pos).rotated(self.angle-old_angle) + self.pos
 
     def draw(self, surface, camera, color):
         for segment in self:
@@ -305,7 +338,7 @@ class Wireframe(Shape):
                                            ser[cls.SER_SIZE+(2*i+1)*cls.SER_POINT_SIZE:cls.SER_SIZE+(
                                               i+1)*2*cls.SER_POINT_SIZE]))
             segments += [Segment(point1, end=point2)]
-        return Wireframe(Vec2d(data[0], data[1]), data[2], segments=segments)
+        return Wireframe(Vec2d(data[0], data[1]), data[2], abs_segments=segments)
 
     @classmethod
     def serialized_size(cls, data):

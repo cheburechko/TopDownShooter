@@ -1,5 +1,5 @@
 from udp import UDPServer
-import Queue, thread, sys
+import Queue, threading, sys
 from server_simulation import ServerSimulation
 from registry import *
 import pygame
@@ -16,7 +16,8 @@ class Server():
         self.server = UDPServer(address, self.msgQ)
         #self.server.verbose = True
 
-        thread.start_new_thread(self.server.serve_forever, ())
+        self.udpThread = threading.Thread(target=self.server.serve_forever,
+                                          name="UDPServer")
         #thread.start_new_thread(self.server.keepAlive, ())
 
         self.sim = ServerSimulation(level)
@@ -26,13 +27,18 @@ class Server():
         f.close()
 
         self.sim.verbose = False
-        thread.start_new_thread(self.sim.simulate, ())
+        self.simThread = threading.Thread(target=self.sim.simulate,
+                                          name="Simulation")
 
         self.players = {}
         self.alive=True
         self.lastPing = 0
 
-        thread.start_new_thread(self.serve, ())
+        self.coreThread = threading.Thread(target=self.serve,
+                                           name="Core")
+        self.udpThread.start()
+        self.simThread.start()
+        self.coreThread.start()
 
 
     def kill(self):
@@ -104,9 +110,9 @@ if __name__ == '__main__':
         server.broadcastState()
     except KeyboardInterrupt:
         print 1
-        yappi.stop()
-        print 2
         server.kill()
+        print 2
+        yappi.stop()
         print 3
         yappi.get_func_stats().save("server_profile.bin")
         print 4

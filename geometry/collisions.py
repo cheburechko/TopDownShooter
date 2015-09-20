@@ -3,7 +3,7 @@ import sys, math
 
 
 def collide_circle_circle(circle1, circle2):
-    return circle1.pos.get_distance(circle2.pos) < (circle1.radius + circle2.radius)
+    return circle1.pos.get_dist_sqrd(circle2.pos) <= (circle1.radius + circle2.radius)**2
 
 
 def intersect_circle_segment(circle, segment):
@@ -27,7 +27,19 @@ def intersect_circle_segment(circle, segment):
 
 
 def collide_circle_segment(circle, segment):
-    return len(intersect_circle_segment(circle, segment)) > 0
+    a = segment.length**2
+    b = segment.vector.dot(segment.pos - circle.pos)
+    c = segment.pos.get_dist_sqrd(circle.pos) - circle.radius**2
+    d = b**2 - a*c
+    if d < 0:
+        return False
+    else:
+        x = a+b
+        if b*x < 0:
+            return d <= max(b**2, x**2)
+        return min(b**2, x**2) <= d <= max(b**2, x**2)
+
+
 
 def collide_segment_segment(segment1, segment2):
     return segment1.intersect(segment2) is not None
