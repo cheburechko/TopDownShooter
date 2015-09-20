@@ -5,6 +5,7 @@ import math
 import pygame
 import struct
 from graphics.Camera import Camera
+from BoundingBox import BoundingBox
 
 class NotShapeClassException(Exception):
     pass
@@ -13,9 +14,10 @@ class Shape(object):
     colliders = {}
     shapes = {}
 
-    def __init__(self, pos, angle):
+    def __init__(self, pos, angle, static=False):
         self.pos = Vec2d(pos)
         self.angle = angle
+        self.static = static
         pass
 
     @classmethod
@@ -50,6 +52,18 @@ class Shape(object):
         if key not in Shape.colliders:
             return False
         return Shape.colliders[key](self, shape)
+
+    def __bounding_box(self):
+        return BoundingBox(self.pos.x, self.pos.x, self.pos.y, self.pos.y)
+
+    @property
+    def bbox(self):
+        if hasattr(self, "__bbox"):
+            return self.__bbox
+        if not self.static:
+            return self.__bounding_box()
+        self.__bbox = self.__bounding_box()
+        return self.__bbox
 
     def get_collisions(self, shapes):
         ans = []
@@ -118,12 +132,13 @@ class Shape(object):
         return None
 
 
+
 class Circle(Shape):
     TYPE = 1
     SER_FMT = "ffff"
     SER_SIZE = 16
-    def __init__(self, pos, angle, radius):
-        Shape.__init__(self, pos, angle)
+    def __init__(self, pos, angle, radius, static=False):
+        Shape.__init__(self, pos, angle, static)
         self.radius = radius
 
     def draw(self, surface, camera, color):
@@ -145,6 +160,12 @@ class Circle(Shape):
     def encloses_point(self, point):
         return self.pos.get_distance(point) < self.radius
 
+    def __bounding_box(self):
+        return BoundingBox(self.pos.x - self.radius,
+                           self.pos.x + self.radius,
+                           self.pos.y - self.radius,
+                           self.pos.y + self.radius)
+
     @classmethod
     def deserialize(cls, ser):
         data = struct.unpack(cls.SER_FMT, ser)
@@ -159,7 +180,7 @@ class Segment(Shape):
     TYPE = 2
     SER_FMT = "ffff"
     SER_SIZE = 16
-    def __init__(self, pos, angle=None, length=None, vector=None, end=None):
+    def __init__(self, pos, angle=None, length=None, vector=None, end=None, static=False):
         if end is not None:
             vector = Vec2d(end) - Vec2d(pos)
         if angle is not None:
@@ -170,7 +191,7 @@ class Segment(Shape):
         self.__length = vector.get_length()
         self.__vector = vector
         self.__end = pos+vector
-        Shape.__init__(self, pos, angle)
+        Shape.__init__(self, pos, angle, static)
 
     @property
     def vector(self):
@@ -208,6 +229,13 @@ class Segment(Shape):
 
     def encloses_point(self, point):
         return False
+
+    def __bounding_box(self):
+        end = self.end
+        return BoundingBox(min(self.pos.x, end.x),
+                           max(self.pos.x, end.x),
+                           min(self.pos.y, end.y),
+                           max(self.pos.y, end.y))
 
     def intersect(self, segment):
         if segment.length == 0 or self.length == 0:
@@ -262,20 +290,20 @@ class Wireframe(Shape):
     SER_POINT_FMT = "ff"
     SER_POINT_SIZE = 8
 
-    def __init__(self, pos, angle, points=None, segments=None, abs_segments=None):
+    def __init__(self, pos, angle, points=None, segments=None, abs_segments=None, static=True):
         Shape.__init__(self, pos, angle)
         if abs_segments is not None:
             self.segments = abs_segments[:]
         elif segments is not None:
             self.segments = []
             for s in segments:
-                self.segments += [Segment(s.pos + self.pos, end=s.end+self.pos)]
+                self.segments += [Segment(s.pos + self.pos, end=s.end+self.pos, static=static)]
         else:
             self.segments = []
             points += [points[0]]
             for i in range(len(points)-1):
                 self.segments += [Segment(points[i]+self.pos,
-                                          end=points[i+1]+self.pos)]
+                                          end=points[i+1]+self.pos, static=static)]
 
     def __getitem__(self, item):
         return self.segments[item]
@@ -305,6 +333,11 @@ class Wireframe(Shape):
         vector = ((self[0].pos + self[1].pos + self[1].end) / 3 - point) * 2**32
         line = Segment(point, vector=vector)
         return len(self.intersect_segment(line)) % 2 == 1
+
+    def __bounding_box(self):
+        xs = reduce(lambda x,y: x+[y.pos.x, y.end.x], self, [])
+        ys = reduce(lambda x,y: x+[y.pos.y, y.end.y], self, [])
+        return BoundingBox(min(xs), max(xs), min(ys), max(ys))
 
     def intersect_segment(self, segment):
         result = []
