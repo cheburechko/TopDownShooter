@@ -18,6 +18,7 @@ class Walls(GameObject):
         shape = Shape.deserialize(state)
         if self.shape is None:
             self.shape = shape
+            self.shape.make_static()
         else:
             self.shape.pos = shape.pos
             self.shape.angle = shape.angle

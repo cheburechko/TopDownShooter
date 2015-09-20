@@ -46,6 +46,8 @@ def collide_segment_segment(segment1, segment2):
 
 
 def collide_circle_wireframe(circle, wireframe):
+    if wireframe.static:
+        return wireframe.map.hit_test(circle)
     for segment in wireframe:
         if collide_circle_segment(circle, segment):
             return True
@@ -54,6 +56,8 @@ def collide_circle_wireframe(circle, wireframe):
 
 # TODO optimize if neccessary
 def collide_segment_wireframe(segment, wireframe):
+    if wireframe.static:
+        return wireframe.map.hit_test(segment)
     for segment2 in wireframe:
         if collide_segment_segment(segment, segment2):
             return True
@@ -62,6 +66,11 @@ def collide_segment_wireframe(segment, wireframe):
 
 # TODO optimize if neccessary
 def collide_wireframe_wireframe(wireframe1, wireframe2):
+    if wireframe1.static:
+        return wireframe1.map.hit_test(wireframe2)
+    elif wireframe2.static:
+        return wireframe2.map.hit_test(wireframe1)
+
     for segment1 in wireframe1:
         for segment2 in wireframe2:
             if collide_segment_segment(segment1, segment2):

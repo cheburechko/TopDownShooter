@@ -26,7 +26,7 @@ class Server():
         f.write(self.sim.getLevelState().toString())
         f.close()
 
-        self.sim.verbose = False
+        self.sim.verbose = True
         self.simThread = threading.Thread(target=self.sim.simulate,
                                           name="Simulation")
 

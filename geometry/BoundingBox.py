@@ -11,7 +11,7 @@ class BoundingBox(object):
         # Note that down > up
         return not (self.left > bbox.right or
                     self.right < bbox.left or
-                    self.up > bbox.bottom or
+                    self.up > bbox.down or
                     self.down < bbox.up)
 
     def __add__(self, bbox):
@@ -26,3 +26,4 @@ class BoundingBox(object):
         self.right = max(self.right, bbox.right)
         self.up = min(self.up, bbox.up)
         self.down = max(self.down, bbox.down)
+        return self

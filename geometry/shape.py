@@ -6,6 +6,7 @@ import pygame
 import struct
 from graphics.Camera import Camera
 from BoundingBox import BoundingBox
+from ShapeHashMap import StaticShapeHashMap
 
 class NotShapeClassException(Exception):
     pass
@@ -53,17 +54,17 @@ class Shape(object):
             return False
         return Shape.colliders[key](self, shape)
 
-    def __bounding_box(self):
+    def _bounding_box(self):
         return BoundingBox(self.pos.x, self.pos.x, self.pos.y, self.pos.y)
 
     @property
     def bbox(self):
-        if hasattr(self, "__bbox"):
-            return self.__bbox
+        if hasattr(self, "_bbox"):
+            return self._bbox
         if not self.static:
-            return self.__bounding_box()
-        self.__bbox = self.__bounding_box()
-        return self.__bbox
+            return self._bounding_box()
+        self._bbox = self._bounding_box()
+        return self._bbox
 
     def get_collisions(self, shapes):
         ans = []
@@ -131,6 +132,9 @@ class Shape(object):
     def bake_sprite(self):
         return None
 
+    def make_static(self):
+        self.static = True
+
 
 
 class Circle(Shape):
@@ -160,7 +164,7 @@ class Circle(Shape):
     def encloses_point(self, point):
         return self.pos.get_distance(point) < self.radius
 
-    def __bounding_box(self):
+    def _bounding_box(self):
         return BoundingBox(self.pos.x - self.radius,
                            self.pos.x + self.radius,
                            self.pos.y - self.radius,
@@ -230,7 +234,7 @@ class Segment(Shape):
     def encloses_point(self, point):
         return False
 
-    def __bounding_box(self):
+    def _bounding_box(self):
         end = self.end
         return BoundingBox(min(self.pos.x, end.x),
                            max(self.pos.x, end.x),
@@ -290,7 +294,7 @@ class Wireframe(Shape):
     SER_POINT_FMT = "ff"
     SER_POINT_SIZE = 8
 
-    def __init__(self, pos, angle, points=None, segments=None, abs_segments=None, static=True):
+    def __init__(self, pos, angle, points=None, segments=None, abs_segments=None, static=False):
         Shape.__init__(self, pos, angle)
         if abs_segments is not None:
             self.segments = abs_segments[:]
@@ -304,10 +308,25 @@ class Wireframe(Shape):
             for i in range(len(points)-1):
                 self.segments += [Segment(points[i]+self.pos,
                                           end=points[i+1]+self.pos, static=static)]
+        if self.static:
+            self.make_static()
+
+    def make_static(self):
+        self.static = True
+        for s in self:
+            s.make_static()
+        avg = reduce(lambda x,y: x + abs(y.vector), self, Vec2d(0,0))
+        avg /= len(self)
+        cell_size = max(avg.x, avg.y) * 2
+        self.map = StaticShapeHashMap(cell_size, self.bbox)
+        self.map.add_shapes(self.segments)
 
     def __getitem__(self, item):
         return self.segments[item]
         #return Segment(s.pos.rotated(self.angle) + self.pos, vector = s.vector.rotated(self.angle))
+
+    def __len__(self):
+        return len(self.segments)
 
 
     def move(self, **kwargs):
@@ -334,7 +353,7 @@ class Wireframe(Shape):
         line = Segment(point, vector=vector)
         return len(self.intersect_segment(line)) % 2 == 1
 
-    def __bounding_box(self):
+    def _bounding_box(self):
         xs = reduce(lambda x,y: x+[y.pos.x, y.end.x], self, [])
         ys = reduce(lambda x,y: x+[y.pos.y, y.end.y], self, [])
         return BoundingBox(min(xs), max(xs), min(ys), max(ys))

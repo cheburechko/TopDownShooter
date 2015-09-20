@@ -5,14 +5,14 @@ from libs.Vec2D import Vec2d
 
 class WireframeMerger(object):
     def __init__(self):
-        pass
+        self.static = True
 
     def merge_exterior(self, shape1, shape2):
         segments = self.__add_exterior_points(shape1, shape2) +\
             self.__add_exterior_points(shape2, shape1)
         segments = self.__sort_segments(segments)
         pos = self.__make_center(segments)
-        return Wireframe(pos, 0, segments=self.__center_segments(segments, pos))
+        return Wireframe(pos, 0, abs_segments=segments, static=self.static)
 
     def __is_segment_inside(self, p1, p2, shape):
         return shape.encloses_point((p1+p2)/2)
