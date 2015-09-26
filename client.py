@@ -1,8 +1,9 @@
-import Queue, thread, sys
+import Queue, threading, sys
 from client_simulation import LocalSimulation, InputControl
 from udp import UDPClient
 from registry import *
 import pygame
+import yappi
 
 class Client():
 
@@ -15,10 +16,13 @@ class Client():
         #self.sim.verbose = True
         self.ic = InputControl(self.client, self.sim)
 
-        thread.start_new_thread(self.client.receive, ())
-        thread.start_new_thread(self.client.keepAlive, ())
-        thread.start_new_thread(self.sim.renderForever, ())
-        thread.start_new_thread(self.ic.processInputForever, ())
+        threading.Thread(target=self.client.receive,
+                         name="UDPClient").start()
+        #thread.start_new_thread(self.client.keepAlive, ())
+        threading.Thread(target=self.ic.processInputForever,
+                      name="InputControl").start()
+        threading.Thread(target=self.sim.renderForever,
+                         name="Rendering").start()
 
         self.client.send(ConnectMessage(nick).toString())
 
@@ -59,8 +63,16 @@ if __name__ == '__main__':
     port = int(sys.argv[2])
     nickname = sys.argv[3]
 
+    yappi.start()
     client = Client((ip, port), nickname)
     try:
         client.serve()
     except KeyboardInterrupt:
         client.kill()
+    finally:
+        yappi.stop()
+        yappi.get_func_stats().save("client_profile.bin")
+        f = open("client_profile.txt", "w")
+        yappi.get_thread_stats().print_all(f)
+        f.close()
+        print "Done."

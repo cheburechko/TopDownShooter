@@ -342,6 +342,11 @@ class Wireframe(Shape):
             s.pos = (s.pos - self.pos).rotated(self.angle-old_angle) + self.pos
 
     def draw(self, surface, camera, color):
+        if self.static:
+            segments = self.map.get_shapes(BoundingBox.from_rect(camera.viewport))
+            for segment in segments:
+                segment.draw(surface, camera, color)
+            return None
         for segment in self:
             segment.draw(surface, camera, color)
 

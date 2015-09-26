@@ -14,6 +14,10 @@ class BoundingBox(object):
                     self.up > bbox.down or
                     self.down < bbox.up)
 
+    @classmethod
+    def from_rect(cls, r):
+        return BoundingBox(r.left, r.right, r.top, r.bottom)
+
     def __add__(self, bbox):
         return BoundingBox(min(self.left, bbox.left),
                            max(self.right, bbox.right),
