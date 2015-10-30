@@ -166,23 +166,23 @@ class LocalSimulation():
             # Clear
 
             # FPS
-            self.drawBackground(self.screen, r)
-            # Input
-            self.textInput.clear(self.screen, self.drawBackground)
-            # Scoreboard
-            self.scoreBoard.clear()
-            # Chat
-            self.chat.clear(self.screen, self.drawBackground)
-            # Player nicks
-            for id in self.playerNicks:
-                self.drawBackground(self.screen, self.playerNicks[id][1])
-            # Bars
-            for id in self.healthBars:
-                self.drawBackground(self.screen, self.healthBars[id])
-            #Sprites
-            self.sprites.clear(self.screen, self.drawBackground)
-            for shape in self.geometry.values():
-               shape.draw(self.screen, self.camera, self.BACKGROUND)
+            self.drawBackground(self.screen, self.screen.get_rect())
+            # # Input
+            # self.textInput.clear(self.screen, self.drawBackground)
+            # # Scoreboard
+            # self.scoreBoard.clear()
+            # # Chat
+            # self.chat.clear(self.screen, self.drawBackground)
+            # # Player nicks
+            # for id in self.playerNicks:
+            #     self.drawBackground(self.screen, self.playerNicks[id][1])
+            # # Bars
+            # for id in self.healthBars:
+            #     self.drawBackground(self.screen, self.healthBars[id])
+            # #Sprites
+            # self.sprites.clear(self.screen, self.drawBackground)
+            # for shape in self.geometry.values():
+            #    shape.draw(self.screen, self.camera, self.BACKGROUND)
 
             self.renderLock.acquire()
             # Extrapolation

@@ -320,6 +320,7 @@ class Wireframe(Shape):
         cell_size = max(avg.x, avg.y) * 2
         self.map = StaticShapeHashMap(cell_size, self.bbox)
         self.map.add_shapes(self.segments)
+        self.sprite = self.bake_sprite()
 
     def __getitem__(self, item):
         return self.segments[item]
@@ -343,15 +344,26 @@ class Wireframe(Shape):
 
     def draw(self, surface, camera, color):
         if self.static:
-            segments = self.map.get_shapes(BoundingBox.from_rect(camera.viewport))
-            for segment in segments:
+            surface.blit(self.sprite, camera.transform((self.bbox.left, self.bbox.up)))
+            # segments = self.map.get_shapes(BoundingBox.from_rect(camera.viewport))
+            # for segment in segments:
+            #     segment.draw(surface, camera, color)
+            # return None
+        else:
+            for segment in self:
                 segment.draw(surface, camera, color)
-            return None
-        for segment in self:
-            segment.draw(surface, camera, color)
 
     def bake_sprite(self):
-        pass
+        # Determine sprite size
+        surface = pygame.Surface((int(self.bbox.right-self.bbox.left),
+                                  int(self.bbox.down-self.bbox.up)),
+                                  flags=pygame.SRCALPHA)
+        surface.set_alpha(0)
+        for segment in self:
+            pygame.draw.line(surface, (0,0,0,255),
+                             segment.pos - (self.bbox.left, self.bbox.up),
+                             segment.end - (self.bbox.left, self.bbox.up))
+        return surface
 
     def encloses_point(self, point):
         vector = ((self[0].pos + self[1].pos + self[1].end) / 3 - point) * 2**32
